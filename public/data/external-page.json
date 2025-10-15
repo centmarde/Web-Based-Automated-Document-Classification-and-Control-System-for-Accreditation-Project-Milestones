@@ -1,0 +1,169 @@
+{
+  "title": "Web-Based Automated Document Classification and Control System for Accreditation Project Milestones",
+  "description": "An intelligent OCR-based system that automates the classification, organization, and management of accreditation documents, streamlining the entire documentation process for institutional compliance and quality assurance.",
+  "subtitle": "Revolutionizing Accreditation Document Management with AI-Powered OCR Technology",
+  "backgroundImage": {
+    "src": "/images/markup.png",
+    "alt": "Abstract academic background with geometric patterns",
+    "overlay": {
+      "enabled": true,
+      "color": "rgba(25, 118, 210, 0.15)",
+      "opacity": 0.8
+    }
+  },
+  "features": [
+    {
+      "title": "Intelligent OCR Document Processing",
+      "description": "Advanced optical character recognition technology automatically extracts and digitizes text from scanned documents, PDFs, and images for efficient document processing.",
+      "icon": "mdi-file-document-outline"
+    },
+    {
+      "title": "Automated Document Classification",
+      "description": "AI-powered classification system automatically categorizes accreditation documents based on content, type, and relevance to specific standards and criteria.",
+      "icon": "mdi-folder-multiple-outline"
+    },
+    {
+      "title": "Repository Management",
+      "description": "Centralized document repository with version control, access management, and advanced search capabilities for quick retrieval of accreditation files.",
+      "icon": "mdi-database-outline"
+    },
+    {
+      "title": "Compliance Tracking & Reporting",
+      "description": "Real-time monitoring of accreditation requirements, automated compliance reports, and milestone tracking to ensure complete documentation coverage.",
+      "icon": "mdi-chart-timeline-variant"
+    }
+  ],
+  "version": "1.0.0",
+  "author": "Accreditation System Development Team",
+  "lastUpdated": "2025-10-16",
+  "theme": {
+    "primaryColor": "#1976D2",
+    "secondaryColor": "#E3F2FD"
+  },
+  "ui": {
+    "showNavbar": true,
+    "showFooter": true,
+    "_comment": "Select the navbar component to use: 1, 2, 3, or 4",
+    "navbarComponent": "1",
+    "_footerComment": "Select the footer component to use: 1 or 2",
+    "footerComponent": "1",
+    "navbar": {
+      "title": "Accreditation Doc System",
+      "icon": "mdi-file-certificate-outline",
+      "logo": {
+        "src": "/src/assets/logo.svg",
+        "alt": "Accreditation System Logo",
+        "width": 32,
+        "height": 32
+      },
+      "color": "primary",
+      "elevation": 2,
+      "density": "comfortable",
+      "navigationItems": [
+        {
+          "_comment": "dont change this",
+          "label": "Features",
+          "action": "scroll",
+          "target": "features"
+        },
+        {
+          "_comment": "dont change this",
+          "label": "About",
+          "action": "scroll",
+          "target": "about"
+        }
+      ],
+      "ctaButton": {
+        "label": "Get Started",
+        "variant": "outlined",
+        "color": "on-primary",
+        "action": "navigate",
+        "_comment": "dont change this /auth cause it is linked to the auth page",
+        "target": "/auth"
+      }
+    },
+    "footer": {
+      "companyName": "Accreditation Documentation System",
+      "tagline": "Intelligent document management through OCR technology",
+      "icon": "mdi-file-document-check-outline",
+      "color": "grey-darken-3",
+      "copyright": "Accreditation System Team. All rights reserved.",
+      "socialLinks": [
+        {
+          "platform": "github",
+          "icon": "mdi-github",
+          "url": "https://github.com",
+          "label": "GitHub"
+        },
+        {
+          "platform": "twitter",
+          "icon": "mdi-twitter",
+          "url": "https://twitter.com",
+          "label": "Twitter"
+        },
+        {
+          "platform": "linkedin",
+          "icon": "mdi-linkedin",
+          "url": "https://linkedin.com",
+          "label": "LinkedIn"
+        }
+      ],
+      "technologies": [
+        {
+          "name": "OCR Technology",
+          "icon": "mdi-text-recognition",
+          "color": "blue"
+        },
+        {
+          "name": "Document Management",
+          "icon": "mdi-file-cabinet",
+          "color": "indigo"
+        }
+      ],
+      "thesisTeam": {
+        "enabled": true,
+        "title": "Development Team",
+        "subtitle": "Meet the minds behind the accreditation documentation system",
+        "members": [
+          {
+            "name": "Lead Developer",
+            "role": "System Architect",
+            "avatar": "/images/team/sarah.jpg"
+          },
+          {
+            "name": "OCR Specialist",
+            "role": "AI & Machine Learning Expert",
+            "avatar": "/images/team/michael.jpg"
+          },
+          {
+            "name": "Documentation Expert",
+            "role": "Accreditation Compliance Specialist",
+            "avatar": "/images/team/emma.jpg"
+          }
+        ]
+      }
+    }
+  },
+  "authPage": {
+    "title": "Welcome to Accreditation Document Management System",
+    "subtitle": "Access your OCR-powered document classification workspace",
+    "layout": {
+      "quotePosition": "right"
+    },
+    "quote": {
+      "text": "Quality is never an accident; it is always the result of intelligent effort.",
+      "author": "John Ruskin",
+      "source": "Victorian Era Philosopher",
+      "motivationalText": "Begin your accreditation documentation journey today. Excellence in organization leads to excellence in outcomes."
+    },
+    "backgroundImage": {
+      "src": "/images/auth-background.jpg",
+      "alt": "Modern office with organized digital documents and OCR technology",
+      "overlay": {
+        "enabled": true,
+        "color": "rgba(25, 118, 210, 0.1)",
+        "opacity": 0.9
+      }
+    }
+  }
+}
