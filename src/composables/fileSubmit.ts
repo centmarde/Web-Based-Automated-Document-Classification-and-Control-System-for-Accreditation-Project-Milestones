@@ -192,6 +192,23 @@ export function useFileSubmit() {
     }
   }
 
+  // Dialog state
+  const showSubmitDialog = ref(false)
+
+  // Open submit dialog
+  const openSubmitDialog = () => {
+    if (!ocrResult.value) {
+      toast.error('No text to submit. Please process a file first.')
+      return
+    }
+    showSubmitDialog.value = true
+  }
+
+  // Close submit dialog
+  const closeSubmitDialog = () => {
+    showSubmitDialog.value = false
+  }
+
   return {
     // State
     isDragging,
@@ -200,6 +217,7 @@ export function useFileSubmit() {
     ocrResult,
     previewUrl,
     fileType,
+    showSubmitDialog,
     // Methods
     handleDragOver,
     handleDragLeave,
@@ -211,5 +229,7 @@ export function useFileSubmit() {
     processDOCX,
     clearSelection,
     copyToClipboard,
+    openSubmitDialog,
+    closeSubmitDialog,
   }
 }

@@ -3,6 +3,9 @@ import { ref } from 'vue'
 import { useFileSubmit } from '@/composables/fileSubmit'
 import './css/fileSubmit.css'
 
+// File input ref
+const fileInputRef = ref<HTMLInputElement | null>(null)
+
 // Use the composable
 const {
   isDragging,
@@ -11,12 +14,15 @@ const {
   ocrResult,
   previewUrl,
   fileType,
+  showSubmitDialog,
   handleDragOver,
   handleDragLeave,
   handleDrop,
   handleFileInput,
   clearSelection,
   copyToClipboard,
+  openSubmitDialog,
+  closeSubmitDialog,
 } = useFileSubmit()
 
 // Toggle state for showing results
@@ -24,6 +30,9 @@ const showResults = ref(false)
 
 // Full-size image viewer dialog
 const showFullSizeDialog = ref(false)
+
+// Thank you dialog state
+const showThankYouDialog = ref(false)
 
 // Toggle results visibility
 const toggleResults = () => {
@@ -33,6 +42,21 @@ const toggleResults = () => {
 // Open full-size image viewer
 const openFullSizeViewer = () => {
   showFullSizeDialog.value = true
+}
+
+// Handle successful submission - reset everything
+const handleSubmitSuccess = () => {
+  clearSelection()
+  showResults.value = false
+  showFullSizeDialog.value = false
+
+  // Reset the file input element
+  if (fileInputRef.value) {
+    fileInputRef.value.value = ''
+  }
+
+  // Show thank you dialog after clearing
+  showThankYouDialog.value = true
 }
 </script>
 
@@ -50,6 +74,7 @@ const openFullSizeViewer = () => {
         @drop="handleDrop"
       >
         <input
+          ref="fileInputRef"
           type="file"
           id="file-input"
           class="file-input"
@@ -130,16 +155,27 @@ const openFullSizeViewer = () => {
         class="mt-4"
       ></v-progress-linear>
 
-      <!-- Toggle Results Button -->
-      <div v-if="selectedFile && !isProcessing" class="mt-4 text-center">
+      <!-- Toggle Results Button and Submit File Button -->
+      <div v-if="selectedFile && !isProcessing" class="mt-4 text-center d-flex justify-center gap-3">
         <v-btn
           color="primary"
           variant="tonal"
           @click="toggleResults"
           size="large"
+					class="mx-2"
         >
           <v-icon left>{{ showResults ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
           {{ showResults ? 'Hide Results' : 'Show Results' }}
+        </v-btn>
+
+        <v-btn
+          color="success"
+          variant="elevated"
+          @click="openSubmitDialog"
+          size="large"
+        >
+          <v-icon left>mdi-file-upload</v-icon>
+          Submit File
         </v-btn>
       </div>
 
@@ -275,6 +311,20 @@ const openFullSizeViewer = () => {
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Submit Dialog -->
+    <SubmitDialog
+      v-model="showSubmitDialog"
+      :ocr-result="ocrResult"
+      :selected-file="selectedFile"
+      @close="closeSubmitDialog"
+      @success="handleSubmitSuccess"
+    />
+
+    <!-- Thank You Dialog -->
+    <ThankYouDialog
+      v-model="showThankYouDialog"
+    />
   </v-card>
 </template>
 

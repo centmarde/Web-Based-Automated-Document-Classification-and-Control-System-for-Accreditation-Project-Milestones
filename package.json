@@ -16,6 +16,7 @@
     "@mdi/font": "7.4.47",
     "@supabase/supabase-js": "^2.57.2",
     "axios": "^1.11.0",
+    "groq-sdk": "^0.34.0",
     "mammoth": "^1.11.0",
     "pdfjs-dist": "^5.4.296",
     "pinia": "^3.0.3",
