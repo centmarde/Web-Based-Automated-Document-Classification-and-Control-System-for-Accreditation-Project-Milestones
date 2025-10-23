@@ -30,16 +30,9 @@ const handleLogout = async () => {
 <template>
   <InnerLayoutWrapper>
     <template #content>
-      <v-container fluid class="pa-4">
+      <v-container fluid>
         <v-row justify="center">
-          <v-col cols="12" md="10" lg="10">
-            <div class="mb-4">
-              <h1 class="text-h4 font-weight-bold mb-2">Document Text Extractor</h1>
-              <p class="text-body-1 text-medium-emphasis">
-                Upload an image, PDF, or DOCX file to extract text automatically
-              </p>
-            </div>
-
+          <v-col cols="12" md="12" lg="12">
             <FIleSubmit />
           </v-col>
         </v-row>
