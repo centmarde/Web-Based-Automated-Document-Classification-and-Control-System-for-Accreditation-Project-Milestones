@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "version": "0.0.0",
+  "author": "Centmarde Camapdo",
   "scripts": {
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
