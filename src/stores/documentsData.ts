@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useAuthUserStore } from '@/stores/authUser'
 import { supabase } from '@/lib/supabase'
 
@@ -241,6 +241,50 @@ export const useDocumentsDataStore = defineStore('documentsData', () => {
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 
+  // Trigger a browser download for a given public URL
+  function downloadDocumentFile(url?: string, fileName?: string) {
+    if (!url) return
+    try {
+      const link = document.createElement('a')
+      link.href = url
+      if (fileName) link.download = fileName
+      link.rel = 'noopener'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (err) {
+      // Fallback to opening in a new tab
+      openDocumentFile(url)
+    }
+  }
+
+  // Derived lists for repository views
+  const approvedDocuments = computed(() =>
+    (documents.value || []).filter(d => (d.status || '').toLowerCase() === 'approved')
+  )
+
+  const approvedUserDocuments = computed(() =>
+    (userDocuments.value || []).filter(d => (d.status || '').toLowerCase() === 'approved')
+  )
+
+  // Text search helper (title or status for now)
+  function searchDocuments(list: Document[], query: string) {
+    const q = (query || '').trim().toLowerCase()
+    if (!q) return list
+    return list.filter(d => {
+      const title = (d.title || '').toLowerCase()
+      const status = (d.status || '').toLowerCase()
+      return title.includes(q) || status.includes(q)
+    })
+  }
+
+  // Convenience fetch for repository: all docs + current user's docs
+  async function fetchRepositoryData() {
+    // Keep it simple: run sequentially; loading flag will toggle but UI remains correct
+    await fetchDocuments()
+    await fetchDocumentsForCurrentUser()
+  }
+
   // Fetch documents by status
   async function fetchDocumentsByStatus(status: string) {
     loading.value = true
@@ -475,8 +519,13 @@ export const useDocumentsDataStore = defineStore('documentsData', () => {
     // extra state + helpers
     userDocuments,
     adminDocuments,
+    approvedDocuments,
+    approvedUserDocuments,
     formatDocumentDate,
     openDocumentFile,
+    downloadDocumentFile,
+    searchDocuments,
+    fetchRepositoryData,
     // admin helpers
     fetchAdminDocuments,
     approveDocument,

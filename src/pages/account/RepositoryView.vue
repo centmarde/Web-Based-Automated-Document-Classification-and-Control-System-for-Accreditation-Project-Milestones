@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import { onMounted, watch, ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import InnerLayoutWrapper from '@/layouts/InnerLayoutWrapper.vue'
 import { useDocumentsDataStore } from '@/stores/documentsData'
@@ -8,22 +8,29 @@ import { useAuthUserStore } from '@/stores/authUser'
 const authStore = useAuthUserStore()
 const docsStore = useDocumentsDataStore()
 
-const { loading, error, userDocuments } = storeToRefs(docsStore)
+const { loading, error, userDocuments, documents, approvedDocuments, approvedUserDocuments } = storeToRefs(docsStore)
 const { userData } = storeToRefs(authStore)
-
-const fetchUserDocs = async () => {
-  await docsStore.fetchDocumentsForCurrentUser()
-}
 
 watch(
   () => userData.value?.id,
-  (id) => {
-    if (id) fetchUserDocs()
+  async (id) => {
+    if (id) await docsStore.fetchDocumentsForCurrentUser()
   },
   { immediate: true }
 )
 
-onMounted(fetchUserDocs)
+// View mode and search
+const viewMode = ref<'all' | 'mine'>('all')
+const searchQuery = ref('')
+
+const displayedDocs = computed(() => {
+  const base = viewMode.value === 'all' ? approvedDocuments.value : approvedUserDocuments.value
+  return docsStore.searchDocuments(base as any, searchQuery.value)
+})
+
+onMounted(async () => {
+  await docsStore.fetchRepositoryData()
+})
 </script>
 
 <template>
@@ -32,18 +39,33 @@ onMounted(fetchUserDocs)
       <v-container fluid class="pa-6">
         <!-- Header -->
         <v-row class="mb-6">
-          <v-col cols="12" class="d-flex align-center justify-space-between">
+          <v-col cols="12" class="d-flex align-center justify-space-between flex-wrap ga-3">
             <div>
               <h1 class="text-h4 font-weight-bold mb-2">My Repository</h1>
               <p class="text-body-1 text-grey-darken-1">
-                All documents you have submitted
+                Browse all uploaded documents or your submissions
               </p>
             </div>
-            <div class="d-flex ga-2">
+            <div class="d-flex ga-2 align-center flex-wrap">
+              <v-btn-toggle v-model="viewMode" mandatory density="comfortable" class="mr-2">
+                <v-btn value="all" variant="tonal" prepend-icon="mdi-earth">All</v-btn>
+                <v-btn value="mine" variant="tonal" prepend-icon="mdi-account">My Documents</v-btn>
+              </v-btn-toggle>
+
+              <v-text-field
+                v-model="searchQuery"
+                placeholder="Search documents..."
+                density="comfortable"
+                hide-details
+                clearable
+                prepend-inner-icon="mdi-magnify"
+                style="min-width: 260px"
+              />
+
               <v-btn
                 variant="outlined"
                 prepend-icon="mdi-refresh"
-                @click="fetchUserDocs"
+                @click="() => docsStore.fetchRepositoryData()"
                 :loading="loading"
               >
                 Refresh
@@ -74,7 +96,7 @@ onMounted(fetchUserDocs)
         </v-row>
 
         <!-- Empty State -->
-        <v-row v-else-if="userDocuments.length === 0">
+        <v-row v-else-if="displayedDocs.length === 0">
           <v-col cols="12">
             <div class="text-center py-12">
               <v-icon size="96" color="grey-lighten-1" class="mb-4">
@@ -82,7 +104,7 @@ onMounted(fetchUserDocs)
               </v-icon>
               <h3 class="text-h5 mb-3">No documents yet</h3>
               <p class="text-body-1 text-grey-darken-1">
-                Uploaded documents will appear here
+                Try adjusting your search or view filters
               </p>
             </div>
           </v-col>
@@ -91,7 +113,7 @@ onMounted(fetchUserDocs)
         <!-- Documents Grid -->
         <v-row v-else>
           <v-col
-            v-for="doc in userDocuments"
+            v-for="doc in displayedDocs"
             :key="doc.id"
             cols="12"
             sm="6"
@@ -132,14 +154,13 @@ onMounted(fetchUserDocs)
                     Open
                   </v-btn>
                   <v-btn
-                    v-if="doc.attach_file"
+                    :disabled="!doc.attach_file"
                     color="primary"
-                    variant="text"
-                    icon
-                    @click="docsStore.openDocumentFile(doc.attach_file)"
-                    :aria-label="'Open ' + (doc.title || 'document')"
+                    variant="outlined"
+                    prepend-icon="mdi-download"
+                    @click="docsStore.downloadDocumentFile(doc.attach_file, (doc.title || 'document'))"
                   >
-                    <v-icon>mdi-link</v-icon>
+                    Download
                   </v-btn>
                 </div>
               </v-card-text>
