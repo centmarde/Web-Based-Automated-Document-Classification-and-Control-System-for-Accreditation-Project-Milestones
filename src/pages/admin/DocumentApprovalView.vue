@@ -5,13 +5,13 @@ import InnerLayoutWrapper from '@/layouts/InnerLayoutWrapper.vue'
 import { useDocumentsDataStore } from '@/stores/documentsData'
 
 const docsStore = useDocumentsDataStore()
-const { loading, error, adminDocuments } = storeToRefs(docsStore)
+const { loading, error, adminVersionItems } = storeToRefs(docsStore)
 
-// UI filter state
+// UI filter state (applies to version status)
 const filter = ref<'all' | 'pending' | 'approved' | 'rejected'>('pending')
 
 const loadDocs = async () => {
-  await docsStore.fetchAdminDocuments(filter.value)
+  await docsStore.fetchAdminVersionItems(filter.value)
 }
 
 onMounted(loadDocs)
@@ -28,7 +28,7 @@ watch(filter, loadDocs)
             <div>
               <h1 class="text-h4 font-weight-bold mb-2">Document Approvals</h1>
               <p class="text-body-1 text-grey-darken-1">
-                Review and approve or reject user-submitted documents
+                Review and approve or reject specific document versions
               </p>
             </div>
             <div class="d-flex ga-2">
@@ -73,7 +73,7 @@ watch(filter, loadDocs)
         </v-row>
 
         <!-- Empty State -->
-        <v-row v-else-if="adminDocuments.length === 0">
+  <v-row v-else-if="adminVersionItems.length === 0">
           <v-col cols="12">
             <div class="text-center py-12">
               <v-icon size="96" color="grey-lighten-1" class="mb-4">
@@ -87,11 +87,11 @@ watch(filter, loadDocs)
           </v-col>
         </v-row>
 
-        <!-- Documents Grid -->
+        <!-- Versions Grid -->
         <v-row v-else>
           <v-col
-            v-for="doc in adminDocuments"
-            :key="doc.id"
+            v-for="item in adminVersionItems"
+            :key="item.documentId + '-' + (item.version?.v || 0)"
             cols="12"
             sm="6"
             md="4"
@@ -105,31 +105,32 @@ watch(filter, loadDocs)
                       <v-icon color="white">mdi-file-document</v-icon>
                     </v-avatar>
                     <v-btn
-                      :disabled="!doc.attach_file"
+                      :disabled="!item.version?.file_url"
                       color="primary"
                       variant="text"
                       prepend-icon="mdi-open-in-new"
                       size="small"
-                      @click="docsStore.openDocumentFile(doc.attach_file)"
+                      @click="docsStore.openDocumentFile(item.version?.file_url)"
                     >
                       Open
                     </v-btn>
                   </div>
                   <v-chip
-                    v-if="doc.status"
+                    v-if="item.version?.status"
                     size="small"
-                    :color="doc.status === 'approved' ? 'success' : doc.status === 'rejected' ? 'error' : 'info'"
+                    :color="item.version?.status === 'approved' ? 'success' : item.version?.status === 'rejected' ? 'error' : 'info'"
                     variant="tonal"
                   >
-                    {{ doc.status || 'pending' }}
+                    {{ item.version?.status || 'pending' }}
                   </v-chip>
                 </div>
 
-                <h3 class="text-h6 font-weight-medium mb-1">
-                  {{ doc.title || 'Untitled Document' }}
+                <h3 class="text-h6 font-weight-medium mb-1 d-flex align-center ga-2">
+                  <span>{{ item.docTitle || 'Untitled Document' }}</span>
+                  <v-chip size="small" variant="outlined">v{{ item.version?.v ?? '?' }}</v-chip>
                 </h3>
                 <div class="text-caption text-grey-darken-1 mb-3">
-                  {{ doc.created_at ? new Date(doc.created_at).toLocaleString() : '—' }}
+                  {{ item.version?.created_at ? new Date(item.version.created_at).toLocaleString() : '—' }}
                 </div>
 
                 <v-card-actions class="px-0 py-0 mt-2 actions-tight">
@@ -139,7 +140,8 @@ watch(filter, loadDocs)
                       variant="elevated"
                       prepend-icon="mdi-check"
                       size="small"
-                      @click="docsStore.approveDocument(doc.id, filter)"
+                      :disabled="(item.version?.status || '').toLowerCase() !== 'pending'"
+                      @click="docsStore.approveVersion(item.documentId, (item.version?.v || 0), filter)"
                     >
                       Approve
                     </v-btn>
@@ -148,7 +150,8 @@ watch(filter, loadDocs)
                       variant="elevated"
                       prepend-icon="mdi-close"
                       size="small"
-                      @click="docsStore.rejectDocument(doc.id, filter)"
+                      :disabled="(item.version?.status || '').toLowerCase() !== 'pending'"
+                      @click="docsStore.rejectVersion(item.documentId, (item.version?.v || 0), filter)"
                     >
                       Reject
                     </v-btn>

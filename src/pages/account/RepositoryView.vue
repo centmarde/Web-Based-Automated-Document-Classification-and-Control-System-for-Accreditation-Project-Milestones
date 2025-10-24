@@ -3,6 +3,7 @@ import { onMounted, watch, ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import InnerLayoutWrapper from '@/layouts/InnerLayoutWrapper.vue'
 import { useDocumentsDataStore } from '@/stores/documentsData'
+import HistoryDialog from '@/components/dialogs/HistoryDialog.vue'
 import { useAuthUserStore } from '@/stores/authUser'
 
 const authStore = useAuthUserStore()
@@ -31,6 +32,42 @@ const displayedDocs = computed(() => {
 onMounted(async () => {
   await docsStore.fetchRepositoryData()
 })
+
+// Identify current user's documents
+const isMine = (doc: any) => {
+  const uid = userData.value?.id
+  if (!uid || !doc) return false
+  const owner = doc.user_id ?? doc.userId ?? doc.owner_id ?? doc.created_by ?? doc.createdBy
+  return owner === uid
+}
+
+// Versioning UI state and handlers
+const showHistory = ref(false)
+const showNewVersion = ref(false)
+const selectedDoc = ref<any | null>(null)
+const newVersionFile = ref<File | null>(null)
+const newVersionNotes = ref('')
+
+function openHistory(doc: any) {
+  selectedDoc.value = doc
+  showHistory.value = true
+}
+
+function openNewVersion(doc: any) {
+  selectedDoc.value = doc
+  newVersionFile.value = null
+  newVersionNotes.value = ''
+  showNewVersion.value = true
+}
+
+async function submitNewVersion() {
+  if (!selectedDoc.value || !newVersionFile.value) return
+  await docsStore.createNewDocumentVersion(selectedDoc.value.id, newVersionFile.value, { notes: newVersionNotes.value })
+  showNewVersion.value = false
+  selectedDoc.value = null
+}
+
+// History versions and filtering are now encapsulated in HistoryDialog
 </script>
 
 <template>
@@ -120,20 +157,36 @@ onMounted(async () => {
             md="4"
             lg="3"
           >
-            <v-card class="mx-auto" elevation="2">
+            <v-card class="mx-auto" :class="{ 'mine-card': isMine(doc) }" elevation="2">
               <v-card-text class="pa-4">
                 <div class="d-flex align-center justify-space-between mb-3">
                   <v-avatar size="40" color="primary">
                     <v-icon color="white">mdi-file-document</v-icon>
                   </v-avatar>
-                  <v-chip
-                    v-if="doc.status"
-                    size="small"
-                    :color="doc.status === 'approved' ? 'success' : doc.status === 'rejected' ? 'error' : 'info'"
-                    variant="tonal"
-                  >
-                    {{ doc.status }}
-                  </v-chip>
+                  <div class="d-flex align-center ga-1">
+                    <v-chip
+                      v-if="doc.status"
+                      size="small"
+                      :color="doc.status === 'approved' ? 'success' : doc.status === 'rejected' ? 'error' : 'info'"
+                      variant="tonal"
+                    >
+                      {{ doc.status }}
+                    </v-chip>
+                    <v-tooltip text="History" location="bottom">
+                      <template #activator="{ props }">
+                        <v-btn
+                          v-bind="props"
+                          icon
+                          variant="text"
+                          size="small"
+                          @click="openHistory(doc)"
+                          aria-label="Open history"
+                        >
+                          <v-icon>mdi-history</v-icon>
+                        </v-btn>
+                      </template>
+                    </v-tooltip>
+                  </div>
                 </div>
 
                 <h3 class="text-h6 font-weight-medium mb-1">
@@ -143,7 +196,7 @@ onMounted(async () => {
                   {{ docsStore.formatDocumentDate(doc.created_at) }}
                 </div>
 
-                <div class="d-flex ga-2 mt-2">
+                <div class="d-flex ga-2 mt-2 align-center flex-wrap">
                   <v-btn
                     :disabled="!doc.attach_file"
                     color="primary"
@@ -162,11 +215,58 @@ onMounted(async () => {
                   >
                     Download
                   </v-btn>
+                  <template v-if="isMine(doc)">
+                    <v-btn
+                      size="small"
+                      color="success"
+                      variant="tonal"
+                      prepend-icon="mdi-file-plus"
+                      @click="openNewVersion(doc)"
+                    >
+                      New Version
+                    </v-btn>
+                  </template>
                 </div>
               </v-card-text>
             </v-card>
           </v-col>
         </v-row>
+
+        <!-- History Dialog extracted into a reusable component -->
+        <HistoryDialog v-model="showHistory" :document="selectedDoc" />
+
+        <!-- New Version Dialog -->
+        <v-dialog v-model="showNewVersion" max-width="560">
+          <v-card>
+            <v-card-title class="d-flex justify-space-between align-center">
+              <span>Upload New Version</span>
+              <v-btn icon="mdi-close" variant="text" @click="showNewVersion = false" />
+            </v-card-title>
+            <v-divider />
+            <v-card-text>
+              <v-file-input
+                v-model="newVersionFile"
+                label="Select file"
+                prepend-icon="mdi-file-upload"
+                show-size
+                accept=".pdf,.doc,.docx,.xlsx,.xls,.ppt,.pptx,.txt,.csv"
+                :rules="[(v)=> !!v || 'File is required']"
+              />
+              <v-textarea
+                v-model="newVersionNotes"
+                label="Notes (optional)"
+                rows="3"
+                auto-grow
+                class="mt-2"
+              />
+            </v-card-text>
+            <v-card-actions class="px-4 pb-4">
+              <v-spacer />
+              <v-btn variant="text" @click="showNewVersion = false">Cancel</v-btn>
+              <v-btn color="primary" :disabled="!newVersionFile" @click="submitNewVersion">Upload</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
       </v-container>
     </template>
   </InnerLayoutWrapper>
@@ -180,5 +280,11 @@ onMounted(async () => {
 .v-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Visual identity for current user's documents */
+.mine-card {
+  border: 2px solid var(--v-theme-primary);
+  background-color: color-mix(in srgb, var(--v-theme-primary) 10%, transparent);
 }
 </style>
