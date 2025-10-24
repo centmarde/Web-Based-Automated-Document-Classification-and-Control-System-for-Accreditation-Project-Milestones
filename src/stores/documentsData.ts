@@ -308,8 +308,26 @@ export const useDocumentsDataStore = defineStore('documentsData', () => {
     if (!doc || !doc.version) return []
     const ver = doc.version as unknown
     if (Array.isArray(ver)) return ver as VersionEntry[]
-    // Fallback: if stored as object, wrap it
-    if (typeof ver === 'object') return [ver as VersionEntry]
+    if (typeof ver === 'object') {
+      const vObj = ver as Record<string, any>
+      // If no explicit numeric v, synthesize a proper first entry from document fields
+      if (typeof (vObj as any).v !== 'number') {
+        return [
+          {
+            v: (doc.current_version && doc.current_version > 0) ? doc.current_version : 1,
+            file_url: doc.attach_file,
+            title: doc.title,
+            contents: doc.contents,
+            tags: doc.tags as any,
+            status: (doc.status || 'pending'),
+            notes: 'Initial import',
+            created_at: doc.created_at,
+            created_by: doc.user_id,
+          }
+        ]
+      }
+      return [vObj as VersionEntry]
+    }
     return []
   }
 
