@@ -28,7 +28,7 @@ const handleLogout = async () => {
 </script>
 
 <template>
-  <InnerLayoutWrapper>
+  <InnerLayoutWrapper :hide-footer="true">
     <template #content>
       <v-container fluid>
         <v-row justify="center">
