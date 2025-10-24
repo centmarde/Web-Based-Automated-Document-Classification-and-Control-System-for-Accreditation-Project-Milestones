@@ -37,6 +37,12 @@ export const navigationConfig: NavigationGroup[] = [
     icon: 'mdi-cog',
     permission: 'admin.access',
     children: [
+      {
+        title: 'Document Approvals',
+        icon: 'mdi-file-check-outline',
+        route: '/admin/document-approvals',
+        permission: 'admin.documents.approve'
+      },
 
       {
         title: 'User Management',

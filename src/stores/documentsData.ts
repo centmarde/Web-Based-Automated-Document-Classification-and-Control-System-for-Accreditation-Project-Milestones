@@ -31,6 +31,10 @@ export const useDocumentsDataStore = defineStore('documentsData', () => {
   const loading = ref(false)
   const error = ref<string | undefined>(undefined)
   const userDocuments = ref<Document[]>([])
+  const adminDocuments = ref<Document[]>([])
+
+  // Types
+  type DocumentStatusFilter = 'all' | 'pending' | 'approved' | 'rejected'
 
   // Actions
 
@@ -263,6 +267,39 @@ export const useDocumentsDataStore = defineStore('documentsData', () => {
     }
   }
 
+  // Admin: Fetch documents for moderation based on status filter
+  async function fetchAdminDocuments(filter: DocumentStatusFilter = 'pending') {
+    loading.value = true
+    error.value = undefined
+    try {
+      if (filter === 'all') {
+        const data = await fetchDocuments()
+        adminDocuments.value = (data || []) as Document[]
+      } else {
+        const data = await fetchDocumentsByStatus(filter)
+        adminDocuments.value = (data || []) as Document[]
+      }
+      return adminDocuments.value
+    } catch (err) {
+      // error already set where applicable
+      return []
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // Admin: Approve a document and refresh list per current filter
+  async function approveDocument(id: number, filter: DocumentStatusFilter = 'pending') {
+    await updateDocument(id, { status: 'approved' })
+    return await fetchAdminDocuments(filter)
+  }
+
+  // Admin: Reject a document and refresh list per current filter
+  async function rejectDocument(id: number, filter: DocumentStatusFilter = 'pending') {
+    await updateDocument(id, { status: 'rejected' })
+    return await fetchAdminDocuments(filter)
+  }
+
   // Clear current document
   function clearCurrentDocument() {
     currentDocument.value = undefined
@@ -437,7 +474,12 @@ export const useDocumentsDataStore = defineStore('documentsData', () => {
     deleteDocumentWithFile,
     // extra state + helpers
     userDocuments,
+    adminDocuments,
     formatDocumentDate,
     openDocumentFile,
+    // admin helpers
+    fetchAdminDocuments,
+    approveDocument,
+    rejectDocument,
   }
 })
