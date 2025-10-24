@@ -19,8 +19,8 @@ watch(
   { immediate: true }
 )
 
-// View mode and search
-const viewMode = ref<'all' | 'mine'>('all')
+// View mode and search (default to user's documents)
+const viewMode = ref<'all' | 'mine'>('mine')
 const searchQuery = ref('')
 
 const displayedDocs = computed(() => {
@@ -48,8 +48,8 @@ onMounted(async () => {
             </div>
             <div class="d-flex ga-2 align-center flex-wrap">
               <v-btn-toggle v-model="viewMode" mandatory density="comfortable" class="mr-2">
-                <v-btn value="all" variant="tonal" prepend-icon="mdi-earth">All</v-btn>
                 <v-btn value="mine" variant="tonal" prepend-icon="mdi-account">My Documents</v-btn>
+                <v-btn value="all" variant="tonal" prepend-icon="mdi-earth">All</v-btn>
               </v-btn-toggle>
 
               <v-text-field
