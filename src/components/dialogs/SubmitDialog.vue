@@ -132,7 +132,15 @@ const submitDocument = async () => {
       }
     }
 
-    // Create document data
+    // Upload file first (if any) so we can include file_url in the initial version entry
+    let fileUrl: string | undefined = undefined
+    if (props.selectedFile) {
+      fileUrl = await documentsStore.uploadFile(props.selectedFile)
+    }
+
+    const nowIso = new Date().toISOString()
+
+    // Create document with a proper initial version array (v=1)
     const documentData = {
       user_id: userId,
       title: title.value,
@@ -141,17 +149,25 @@ const submitDocument = async () => {
       tags: tagsObject,
       collaborators: collaboratorsObject,
       current_version: 1,
-      version: { v1: props.ocrResult },
+      version: [
+        {
+          v: 1,
+          file_url: fileUrl,
+          title: title.value,
+          contents: props.ocrResult,
+          tags: tagsObject,
+          status: 'pending',
+          notes: additionalInfo.value || undefined,
+          created_at: nowIso,
+          created_by: userId,
+        }
+      ] as unknown as Record<string, unknown>,
       last_edited_by: userId,
-      updated_at: new Date().toISOString(),
+      updated_at: nowIso,
+      attach_file: fileUrl,
     }
 
-    // If there's a file, upload it with the document
-    if (props.selectedFile) {
-      await documentsStore.createDocumentWithFile(documentData, props.selectedFile)
-    } else {
-      await documentsStore.createDocument(documentData)
-    }
+    await documentsStore.createDocument(documentData)
 
     toast.success('Document submitted successfully!')
 
