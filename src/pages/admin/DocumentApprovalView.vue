@@ -100,9 +100,21 @@ watch(filter, loadDocs)
             <v-card class="mx-auto" elevation="2">
               <v-card-text class="pa-4">
                 <div class="d-flex align-center justify-space-between mb-3">
-                  <v-avatar size="40" color="primary">
-                    <v-icon color="white">mdi-file-document</v-icon>
-                  </v-avatar>
+                  <div class="d-flex align-center ga-2">
+                    <v-avatar size="40" color="primary">
+                      <v-icon color="white">mdi-file-document</v-icon>
+                    </v-avatar>
+                    <v-btn
+                      :disabled="!doc.attach_file"
+                      color="primary"
+                      variant="text"
+                      prepend-icon="mdi-open-in-new"
+                      size="small"
+                      @click="docsStore.openDocumentFile(doc.attach_file)"
+                    >
+                      Open
+                    </v-btn>
+                  </div>
                   <v-chip
                     v-if="doc.status"
                     size="small"
@@ -120,34 +132,28 @@ watch(filter, loadDocs)
                   {{ doc.created_at ? new Date(doc.created_at).toLocaleString() : '—' }}
                 </div>
 
-                <div class="d-flex ga-2 mt-2">
-                  <v-btn
-                    :disabled="!doc.attach_file"
-                    color="primary"
-                    variant="text"
-                    prepend-icon="mdi-open-in-new"
-                    @click="docsStore.openDocumentFile(doc.attach_file)"
-                  >
-                    Open
-                  </v-btn>
-                  <v-spacer />
-                  <v-btn
-                    color="success"
-                    variant="elevated"
-                    prepend-icon="mdi-check"
-                    @click="docsStore.approveDocument(doc.id, filter)"
-                  >
-                    Approve
-                  </v-btn>
-                  <v-btn
-                    color="error"
-                    variant="outlined"
-                    prepend-icon="mdi-close"
-                    @click="docsStore.rejectDocument(doc.id, filter)"
-                  >
-                    Reject
-                  </v-btn>
-                </div>
+                <v-card-actions class="px-0 py-0 mt-2 actions-tight">
+                  <div class="d-flex justify-space-between align-center w-100">
+                    <v-btn
+                      color="success"
+                      variant="elevated"
+                      prepend-icon="mdi-check"
+                      size="small"
+                      @click="docsStore.approveDocument(doc.id, filter)"
+                    >
+                      Approve
+                    </v-btn>
+                    <v-btn
+                      color="error"
+                      variant="elevated"
+                      prepend-icon="mdi-close"
+                      size="small"
+                      @click="docsStore.rejectDocument(doc.id, filter)"
+                    >
+                      Reject
+                    </v-btn>
+                  </div>
+                </v-card-actions>
               </v-card-text>
             </v-card>
           </v-col>
