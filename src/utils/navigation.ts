@@ -24,6 +24,12 @@ export const navigationConfig: NavigationGroup[] = [
         route: '/account/home',
         permission: 'admin.dashboard.view'
       },
+      {
+        title: 'Repository',
+        icon: 'mdi-file-document-multiple',
+        route: '/account/repository',
+        permission: 'user.repository.view'
+      },
     ]
   },
   {

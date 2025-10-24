@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { useAuthUserStore } from '@/stores/authUser'
 import { supabase } from '@/lib/supabase'
 
 // Types
@@ -29,6 +30,7 @@ export const useDocumentsDataStore = defineStore('documentsData', () => {
   const currentDocument = ref<Document | undefined>(undefined)
   const loading = ref(false)
   const error = ref<string | undefined>(undefined)
+  const userDocuments = ref<Document[]>([])
 
   // Actions
 
@@ -200,6 +202,39 @@ export const useDocumentsDataStore = defineStore('documentsData', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  // Convenience: Fetch documents for the currently authenticated user
+  async function fetchDocumentsForCurrentUser() {
+    loading.value = true
+    error.value = undefined
+    try {
+      const authStore = useAuthUserStore()
+      const uid = authStore.userData?.id
+      if (!uid) {
+        userDocuments.value = []
+        return userDocuments.value
+      }
+      const data = await fetchDocumentsByUserId(uid)
+      userDocuments.value = (data || []) as Document[]
+      return userDocuments.value
+    } catch (err) {
+      // error is already set where applicable
+      return []
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // UI helpers kept here for convenience/consistency
+  function formatDocumentDate(dateString?: string) {
+    if (!dateString) return '—'
+    return new Date(dateString).toLocaleString()
+  }
+
+  function openDocumentFile(url?: string) {
+    if (!url) return
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   // Fetch documents by status
@@ -390,6 +425,7 @@ export const useDocumentsDataStore = defineStore('documentsData', () => {
     deleteDocument,
     fetchDocumentsByUserId,
     fetchDocumentsByStatus,
+  fetchDocumentsForCurrentUser,
     clearCurrentDocument,
     clearError,
 
@@ -399,5 +435,9 @@ export const useDocumentsDataStore = defineStore('documentsData', () => {
     createDocumentWithFile,
     updateDocumentWithFile,
     deleteDocumentWithFile,
+    // extra state + helpers
+    userDocuments,
+    formatDocumentDate,
+    openDocumentFile,
   }
 })
