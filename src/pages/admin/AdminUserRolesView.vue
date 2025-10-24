@@ -45,7 +45,7 @@ const formatDate = (dateString: string) => {
 </script>
 
 <template>
-  <InnerLayoutWrapper>
+  <InnerLayoutWrapper :hide-footer="true">
     <template #content>
       <v-container fluid class="pa-6">
         <div class="my-5">
