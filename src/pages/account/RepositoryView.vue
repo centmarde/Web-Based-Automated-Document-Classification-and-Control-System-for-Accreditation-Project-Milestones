@@ -41,14 +41,14 @@ onMounted(async () => {
         <v-row class="mb-6">
           <v-col cols="12" class="d-flex align-center justify-space-between flex-wrap ga-3">
             <div>
-              <h1 class="text-h4 font-weight-bold mb-2">My Repository</h1>
+              <h1 class="text-h4 font-weight-bold mb-2">File Repository</h1>
               <p class="text-body-1 text-grey-darken-1">
                 Browse all uploaded documents or your submissions
               </p>
             </div>
             <div class="d-flex ga-2 align-center flex-wrap">
               <v-btn-toggle v-model="viewMode" mandatory density="comfortable" class="mr-2">
-                <v-btn value="mine" variant="tonal" prepend-icon="mdi-account">My Documents</v-btn>
+                <v-btn value="mine" variant="tonal" prepend-icon="mdi-account">Mine</v-btn>
                 <v-btn value="all" variant="tonal" prepend-icon="mdi-earth">All</v-btn>
               </v-btn-toggle>
 
