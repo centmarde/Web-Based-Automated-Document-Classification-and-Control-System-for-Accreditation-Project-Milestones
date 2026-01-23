@@ -5,7 +5,7 @@ import UserManagementTable from './components/UserManagementTable.vue';
 
 </script>
 <template>
-  <InnerLayoutWrapper>
+  <InnerLayoutWrapper :hide-footer="true">
     <template #content>
       <v-container fluid class="pa-6">
         <v-row>

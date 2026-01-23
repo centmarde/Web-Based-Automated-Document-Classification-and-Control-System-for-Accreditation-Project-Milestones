@@ -3,6 +3,14 @@ import { onMounted } from 'vue'
 import { useLandingController } from '@/controller/landingController'
 import Sidebar1 from '@/components/common/sideBar/Sidebar.vue'
 
+interface Props {
+  /**
+   * When true, suppress rendering the footer on this page.
+   */
+  hideFooter?: boolean
+}
+
+const props = defineProps<Props>()
 
 const { data, fetchLandingData } = useLandingController()
 
@@ -48,11 +56,11 @@ onMounted(async () => {
     </v-main>
 
     <OuterFooter
-      v-if="data?.ui?.footerComponent === '1'"
+      v-if="!props.hideFooter && data?.ui?.footerComponent === '1'"
       :config="data?.ui"
     />
     <OuterFooter2
-      v-else-if="data?.ui?.footerComponent === '2'"
+      v-else-if="!props.hideFooter && data?.ui?.footerComponent === '2'"
       :config="data?.ui"
     />
   </v-app>

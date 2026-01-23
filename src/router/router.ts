@@ -38,6 +38,16 @@ const routes = setupLayouts([
     meta: { requiresAuth: true }
   },
   {
+    path: "/admin/document-approvals",
+    component: () => import("@/pages/admin/DocumentApprovalView.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/account/repository",
+    component: () => import("../pages/account/RepositoryView.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
     path: "/forbidden",
     component: ForbiddenView,
   },
