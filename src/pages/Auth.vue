@@ -34,6 +34,20 @@ const quoteSectionOrder = computed(() => {
   return isQuoteOnLeft.value ? 1 : 2;
 });
 
+// Background image style
+const backgroundImageStyle = computed(() => {
+  if (!authPageData.value?.backgroundImage) return {};
+
+  const { src, overlay } = authPageData.value.backgroundImage;
+  let style = `background-image: url('${src}'); background-size: cover; background-position: center; background-repeat: no-repeat;`;
+
+  if (overlay?.enabled) {
+    style += ` background-blend-mode: overlay; background-color: ${overlay.color};`;
+  }
+
+  return style;
+});
+
 // Methods
 const switchToRegister = () => {
   isLoginMode.value = false;
@@ -129,7 +143,13 @@ onMounted(async () => {
   </v-alert>
 
   <!-- Main Content -->
-  <v-row v-if="!themeLoading && !authPageLoading && authPageData" class="fill-height" align="center" no-gutters>
+  <v-row
+    v-if="!themeLoading && !authPageLoading && authPageData"
+    class="fill-height auth-container"
+    align="center"
+    no-gutters
+    :style="backgroundImageStyle"
+  >
     <!-- Form Section -->
 
     <v-col
@@ -233,22 +253,22 @@ onMounted(async () => {
       :order="quoteSectionOrder"
     >
       <v-card-text class="text-center">
-        <v-icon size="48" color="primary" class="mb-4 d-flex justify-start">
+        <v-icon size="48"  class="mb-4 d-flex justify-start">
           mdi-format-quote-open
         </v-icon>
 
-        <div class="text-h4 font-weight-light mb-6 text-primary">
+        <div class="text-h4 font-weight-light mb-6">
           {{ authPageData.quote.text }}
         </div>
 
-        <div class="text-h6 text-primary opacity-75">
+        <div class="text-h6  opacity-75">
           — {{ authPageData.quote.author }}
           <span v-if="authPageData.quote.source" class="text-caption">
             ({{ authPageData.quote.source }})
           </span>
         </div>
 
-        <div v-if="authPageData.quote.motivationalText" class="text-body-1 text-primary opacity-75">
+        <div v-if="authPageData.quote.motivationalText" class="text-body-1 opacity-75">
           {{ authPageData.quote.motivationalText }}
         </div>
       </v-card-text>
@@ -256,3 +276,40 @@ onMounted(async () => {
     </v-col>
   </v-row>
 </template>
+
+<style scoped>
+.auth-container {
+  min-height: 100vh;
+  position: relative;
+}
+
+.auth-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: inherit;
+  background-size: inherit;
+  background-position: inherit;
+  background-repeat: inherit;
+  z-index: -2;
+}
+
+.auth-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  z-index: -1;
+}
+
+.auth-container > .v-row {
+  position: relative;
+  z-index: 1;
+}
+</style>
