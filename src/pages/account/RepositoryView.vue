@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import InnerLayoutWrapper from '@/layouts/InnerLayoutWrapper.vue'
 import { useDocumentsDataStore } from '@/stores/documentsData'
 import HistoryDialog from '@/components/dialogs/HistoryDialog.vue'
+import DocumentTitle from '@/components/common/DocumentTitle.vue'
 import { useAuthUserStore } from '@/stores/authUser'
 
 const authStore = useAuthUserStore()
@@ -189,9 +190,7 @@ async function submitNewVersion() {
                   </div>
                 </div>
 
-                <h3 class="text-h6 font-weight-medium mb-1">
-                  {{ doc.title || 'Untitled Document' }}
-                </h3>
+                <DocumentTitle :title="doc.title" />
                 <div class="text-caption text-grey-darken-1 mb-3">
                   {{ docsStore.formatDocumentDate(doc.created_at) }}
                 </div>
@@ -276,7 +275,20 @@ async function submitNewVersion() {
 /* Keep visuals consistent with admin cards */
 .v-card {
   transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  height: 280px; /* Fixed height for all cards */
+  width: 100%; /* Full width of the column */
+  display: flex;
+  flex-direction: column;
 }
+
+.v-card .v-card-text {
+  flex: 1; /* Allow card text to expand */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* Distribute content evenly */
+  padding: 16px !important;
+}
+
 .v-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
@@ -286,5 +298,10 @@ async function submitNewVersion() {
 .mine-card {
   border: 2px solid var(--v-theme-primary);
   background-color: color-mix(in srgb, var(--v-theme-primary) 10%, transparent);
+}
+
+/* Ensure action buttons stay at bottom */
+.d-flex.ga-2.mt-2 {
+  margin-top: auto !important;
 }
 </style>
