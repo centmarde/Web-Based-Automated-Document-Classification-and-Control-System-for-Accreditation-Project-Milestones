@@ -51,7 +51,7 @@
       "title": "Accreditation Doc System",
       "icon": "mdi-file-certificate-outline",
       "logo": {
-        "src": "/src/assets/Logo.png",
+        "src": "/assets/Logo.png",
         "alt": "Accreditation System Logo",
         "width": 32,
         "height": 32
