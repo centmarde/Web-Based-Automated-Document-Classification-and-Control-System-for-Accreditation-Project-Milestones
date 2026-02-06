@@ -2,7 +2,6 @@
   import { onMounted, computed } from 'vue'
   import { useLandingController } from '@/controller/landingController'
   import OuterLayoutWrapper from '@/layouts/OuterLayoutWrapper.vue'
-  import LogoImage from '@/assets/Logo.png'
 
   const { data, loading, error, fetchLandingData } = useLandingController()
 
@@ -90,7 +89,7 @@
                 <!-- Image Column -->
                 <v-col cols="12" lg="5" md="6" class="d-flex justify-center">
                   <v-img
-                    :src="LogoImage"
+                    src="/assets/Logo.png"
                     alt="Document Classification System"
                     max-width="400"
                     class="hero-image"
