@@ -98,7 +98,7 @@ const handleSubmitSuccess = () => {
                 <template v-slot:activator="{ props }">
                   <div v-bind="props" class="file-type-icon">
                     <img
-                      src="@/assets/logos/image.png"
+                      src="/assets/logos/image.png"
                       alt="Image files"
                       @error="(e) => ((e.target as HTMLImageElement).style.display = 'none')"
                     />
@@ -111,7 +111,7 @@ const handleSubmitSuccess = () => {
                 <template v-slot:activator="{ props }">
                   <div v-bind="props" class="file-type-icon">
                     <img
-                      src="@/assets/logos/pdf.png"
+                      src="/assets/logos/pdf.png"
                       alt="PDF files"
                       @error="(e) => ((e.target as HTMLImageElement).style.display = 'none')"
                     />
@@ -124,7 +124,7 @@ const handleSubmitSuccess = () => {
                 <template v-slot:activator="{ props }">
                   <div v-bind="props" class="file-type-icon">
                     <img
-                      src="@/assets/logos/docx.png"
+                      src="/assets/logos/docx.png"
                       alt="Word documents"
                       @error="(e) => ((e.target as HTMLImageElement).style.display = 'none')"
                     />
