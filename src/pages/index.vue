@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+<script setup lang="ts">
   import { onMounted, computed } from 'vue'
   import { useLandingController } from '@/controller/landingController'
   import OuterLayoutWrapper from '@/layouts/OuterLayoutWrapper.vue'
