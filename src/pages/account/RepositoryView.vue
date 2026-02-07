@@ -261,46 +261,60 @@ async function confirmDelete() {
 
                 <v-card-actions class="px-0 pt-2">
                   <v-row dense class="w-100">
-                    <v-col cols="12" class="d-flex ga-2 flex-wrap">
-                      <v-btn
-                        :disabled="!doc.attach_file"
-                        color="primary"
-                        variant="elevated"
-                        prepend-icon="mdi-open-in-new"
-                        @click="docsStore.openDocumentWithLog(doc)"
-                      >
-                        Open
-                      </v-btn>
-                      <v-btn
-                        :disabled="!doc.attach_file"
-                        color="primary"
-                        variant="outlined"
-                        prepend-icon="mdi-download"
-                        @click="docsStore.downloadDocumentWithLog(doc)"
-                      >
-                        Download
-                      </v-btn>
-                    </v-col>
-                    <v-col v-if="isMine(doc)" cols="12" class="d-flex ga-2 flex-wrap">
-                      <v-btn
-                        size="small"
-                        color="success"
-                        variant="tonal"
-                        prepend-icon="mdi-file-plus"
-                        @click="openNewVersion(doc)"
-                      >
-                        New Version
-                      </v-btn>
-                      <v-btn
-                        size="small"
-                        color="error"
-                        variant="text"
-                        prepend-icon="mdi-delete"
-                        @click="askDelete(doc)"
-                        :loading="deletingDocId === doc.id"
-                      >
-                        Delete
-                      </v-btn>
+                    <v-col cols="12" class="d-flex ga-3 align-center flex-wrap">
+                      <v-tooltip text="Open" location="bottom">
+                        <template #activator="{ props }">
+                          <v-btn
+                            v-bind="props"
+                            icon
+                            class="action-icon"
+                            :disabled="!doc.attach_file"
+                            @click="docsStore.openDocumentWithLog(doc)"
+                          >
+                            <v-icon>mdi-open-in-new</v-icon>
+                          </v-btn>
+                        </template>
+                      </v-tooltip>
+                      <v-tooltip text="Download" location="bottom">
+                        <template #activator="{ props }">
+                          <v-btn
+                            v-bind="props"
+                            icon
+                            class="action-icon"
+                            :disabled="!doc.attach_file"
+                            @click="docsStore.downloadDocumentWithLog(doc)"
+                          >
+                            <v-icon>mdi-download</v-icon>
+                          </v-btn>
+                        </template>
+                      </v-tooltip>
+                      <template v-if="isMine(doc)">
+                        <v-tooltip text="New version" location="bottom">
+                          <template #activator="{ props }">
+                            <v-btn
+                              v-bind="props"
+                              icon
+                              class="action-icon"
+                              @click="openNewVersion(doc)"
+                            >
+                              <v-icon>mdi-file-plus</v-icon>
+                            </v-btn>
+                          </template>
+                        </v-tooltip>
+                        <v-tooltip text="Delete" location="bottom">
+                          <template #activator="{ props }">
+                            <v-btn
+                              v-bind="props"
+                              icon
+                              class="action-icon"
+                              @click="askDelete(doc)"
+                              :loading="deletingDocId === doc.id"
+                            >
+                              <v-icon>mdi-delete</v-icon>
+                            </v-btn>
+                          </template>
+                        </v-tooltip>
+                      </template>
                     </v-col>
                   </v-row>
                 </v-card-actions>
@@ -428,6 +442,28 @@ async function confirmDelete() {
 .mine-card {
   border: 2px solid var(--v-theme-primary);
   background-color: color-mix(in srgb, var(--v-theme-primary) 10%, transparent);
+}
+
+.action-icon {
+  background-color: #111 !important;
+  color: #fff !important;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.action-icon:hover {
+  background-color: #000 !important;
+}
+
+.action-icon .v-icon {
+  color: inherit;
+}
+
+.action-icon:disabled {
+  opacity: 0.35;
+  box-shadow: none;
 }
 
 </style>
