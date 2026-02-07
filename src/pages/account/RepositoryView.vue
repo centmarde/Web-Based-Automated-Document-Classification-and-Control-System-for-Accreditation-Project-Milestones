@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, watch, ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useToast } from 'vue-toastification'
 import InnerLayoutWrapper from '@/layouts/InnerLayoutWrapper.vue'
 import { useDocumentsDataStore } from '@/stores/documentsData'
 import HistoryDialog from '@/components/dialogs/HistoryDialog.vue'
@@ -9,8 +10,9 @@ import { useAuthUserStore } from '@/stores/authUser'
 
 const authStore = useAuthUserStore()
 const docsStore = useDocumentsDataStore()
+const toast = useToast()
 
-const { loading, error, userDocuments, documents, approvedDocuments, approvedUserDocuments } = storeToRefs(docsStore)
+const { loading, error, approvedDocuments, approvedUserDocuments } = storeToRefs(docsStore)
 const { userData } = storeToRefs(authStore)
 
 watch(
@@ -21,7 +23,6 @@ watch(
   { immediate: true }
 )
 
-// View mode and search (default to user's documents)
 const viewMode = ref<'all' | 'mine'>('mine')
 const searchQuery = ref('')
 
@@ -34,7 +35,6 @@ onMounted(async () => {
   await docsStore.fetchRepositoryData()
 })
 
-// Identify current user's documents
 const isMine = (doc: any) => {
   const uid = userData.value?.id
   if (!uid || !doc) return false
@@ -42,12 +42,15 @@ const isMine = (doc: any) => {
   return owner === uid
 }
 
-// Versioning UI state and handlers
 const showHistory = ref(false)
 const showNewVersion = ref(false)
 const selectedDoc = ref<any | null>(null)
 const newVersionFile = ref<File | null>(null)
 const newVersionNotes = ref('')
+
+const deleteDialog = ref(false)
+const docToDelete = ref<any | null>(null)
+const deletingDocId = ref<number | null>(null)
 
 function openHistory(doc: any) {
   selectedDoc.value = doc
@@ -66,6 +69,43 @@ async function submitNewVersion() {
   await docsStore.createNewDocumentVersion(selectedDoc.value.id, newVersionFile.value, { notes: newVersionNotes.value })
   showNewVersion.value = false
   selectedDoc.value = null
+}
+
+function askDelete(doc: any) {
+  if (!isMine(doc)) {
+    toast.error('You can only delete documents you uploaded.')
+    return
+  }
+  docToDelete.value = doc
+  deleteDialog.value = true
+}
+
+function closeDeleteDialog() {
+  deleteDialog.value = false
+  docToDelete.value = null
+}
+
+async function confirmDelete() {
+  if (!docToDelete.value) return
+  if (!isMine(docToDelete.value)) {
+    toast.error('You can only delete documents you uploaded.')
+    closeDeleteDialog()
+    return
+  }
+
+  try {
+    deletingDocId.value = docToDelete.value.id
+    await docsStore.deleteDocumentWithFile(docToDelete.value.id)
+    await docsStore.fetchRepositoryData()
+    toast.success('Document deleted')
+  } catch (err) {
+    console.error('Failed to delete document:', err)
+    const message = err instanceof Error ? err.message : 'Failed to delete document'
+    toast.error(message)
+  } finally {
+    deletingDocId.value = null
+    closeDeleteDialog()
+  }
 }
 
 // History versions and filtering are now encapsulated in HistoryDialog
@@ -195,37 +235,51 @@ async function submitNewVersion() {
                   {{ docsStore.formatDocumentDate(doc.created_at) }}
                 </div>
 
-                <div class="d-flex ga-2 mt-2 align-center flex-wrap">
-                  <v-btn
-                    :disabled="!doc.attach_file"
-                    color="primary"
-                    variant="elevated"
-                    prepend-icon="mdi-open-in-new"
-                    @click="docsStore.openDocumentFile(doc.attach_file)"
-                  >
-                    Open
-                  </v-btn>
-                  <v-btn
-                    :disabled="!doc.attach_file"
-                    color="primary"
-                    variant="outlined"
-                    prepend-icon="mdi-download"
-                    @click="docsStore.downloadDocumentFile(doc.attach_file, (doc.title || 'document'))"
-                  >
-                    Download
-                  </v-btn>
-                  <template v-if="isMine(doc)">
-                    <v-btn
-                      size="small"
-                      color="success"
-                      variant="tonal"
-                      prepend-icon="mdi-file-plus"
-                      @click="openNewVersion(doc)"
-                    >
-                      New Version
-                    </v-btn>
-                  </template>
-                </div>
+                <v-card-actions class="px-0 pt-2">
+                  <v-row dense class="w-100">
+                    <v-col cols="12" class="d-flex ga-2 flex-wrap">
+                      <v-btn
+                        :disabled="!doc.attach_file"
+                        color="primary"
+                        variant="elevated"
+                        prepend-icon="mdi-open-in-new"
+                        @click="docsStore.openDocumentFile(doc.attach_file)"
+                      >
+                        Open
+                      </v-btn>
+                      <v-btn
+                        :disabled="!doc.attach_file"
+                        color="primary"
+                        variant="outlined"
+                        prepend-icon="mdi-download"
+                        @click="docsStore.downloadDocumentFile(doc.attach_file, (doc.title || 'document'))"
+                      >
+                        Download
+                      </v-btn>
+                    </v-col>
+                    <v-col v-if="isMine(doc)" cols="12" class="d-flex ga-2 flex-wrap">
+                      <v-btn
+                        size="small"
+                        color="success"
+                        variant="tonal"
+                        prepend-icon="mdi-file-plus"
+                        @click="openNewVersion(doc)"
+                      >
+                        New Version
+                      </v-btn>
+                      <v-btn
+                        size="small"
+                        color="error"
+                        variant="text"
+                        prepend-icon="mdi-delete"
+                        @click="askDelete(doc)"
+                        :loading="deletingDocId === doc.id"
+                      >
+                        Delete
+                      </v-btn>
+                    </v-col>
+                  </v-row>
+                </v-card-actions>
               </v-card-text>
             </v-card>
           </v-col>
@@ -266,6 +320,25 @@ async function submitNewVersion() {
             </v-card-actions>
           </v-card>
         </v-dialog>
+
+        <!-- Delete Confirmation Dialog -->
+        <v-dialog v-model="deleteDialog" max-width="420">
+          <v-card>
+            <v-card-title class="text-h6">Delete Document</v-card-title>
+            <v-card-text>
+              Are you sure you want to delete
+              "{{ docToDelete?.title || 'this document' }}"?
+              This will remove the file and its metadata.
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer />
+              <v-btn variant="text" @click="closeDeleteDialog" :disabled="deletingDocId !== null">Cancel</v-btn>
+              <v-btn color="error" variant="elevated" @click="confirmDelete" :loading="deletingDocId !== null">
+                Delete
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
       </v-container>
     </template>
   </InnerLayoutWrapper>
@@ -275,7 +348,6 @@ async function submitNewVersion() {
 /* Keep visuals consistent with admin cards */
 .v-card {
   transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-  height: 280px; /* Fixed height for all cards */
   width: 100%; /* Full width of the column */
   display: flex;
   flex-direction: column;
@@ -300,8 +372,4 @@ async function submitNewVersion() {
   background-color: color-mix(in srgb, var(--v-theme-primary) 10%, transparent);
 }
 
-/* Ensure action buttons stay at bottom */
-.d-flex.ga-2.mt-2 {
-  margin-top: auto !important;
-}
 </style>
