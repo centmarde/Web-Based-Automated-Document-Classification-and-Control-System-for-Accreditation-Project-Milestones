@@ -51,6 +51,10 @@ const newVersionNotes = ref('')
 const deleteDialog = ref(false)
 const docToDelete = ref<any | null>(null)
 const deletingDocId = ref<number | null>(null)
+const showLogDialog = ref(false)
+const logDoc = ref<any | null>(null)
+
+const formatAccess = (timestamp?: string) => timestamp ? docsStore.formatDocumentDate(timestamp) : '—'
 
 function openHistory(doc: any) {
   selectedDoc.value = doc
@@ -83,6 +87,11 @@ function askDelete(doc: any) {
 function closeDeleteDialog() {
   deleteDialog.value = false
   docToDelete.value = null
+}
+
+function openLogDialog(doc: any) {
+  logDoc.value = doc
+  showLogDialog.value = true
 }
 
 async function confirmDelete() {
@@ -213,6 +222,20 @@ async function confirmDelete() {
                     >
                       {{ doc.status }}
                     </v-chip>
+                    <v-tooltip text="View access log" location="bottom">
+                      <template #activator="{ props }">
+                        <v-btn
+                          v-bind="props"
+                          icon
+                          variant="text"
+                          size="small"
+                          @click="openLogDialog(doc)"
+                          aria-label="Open access log"
+                        >
+                          <v-icon>mdi-information-outline</v-icon>
+                        </v-btn>
+                      </template>
+                    </v-tooltip>
                     <v-tooltip text="History" location="bottom">
                       <template #activator="{ props }">
                         <v-btn
@@ -235,6 +258,7 @@ async function confirmDelete() {
                   {{ docsStore.formatDocumentDate(doc.created_at) }}
                 </div>
 
+
                 <v-card-actions class="px-0 pt-2">
                   <v-row dense class="w-100">
                     <v-col cols="12" class="d-flex ga-2 flex-wrap">
@@ -243,7 +267,7 @@ async function confirmDelete() {
                         color="primary"
                         variant="elevated"
                         prepend-icon="mdi-open-in-new"
-                        @click="docsStore.openDocumentFile(doc.attach_file)"
+                        @click="docsStore.openDocumentWithLog(doc)"
                       >
                         Open
                       </v-btn>
@@ -252,7 +276,7 @@ async function confirmDelete() {
                         color="primary"
                         variant="outlined"
                         prepend-icon="mdi-download"
-                        @click="docsStore.downloadDocumentFile(doc.attach_file, (doc.title || 'document'))"
+                        @click="docsStore.downloadDocumentWithLog(doc)"
                       >
                         Download
                       </v-btn>
@@ -336,6 +360,40 @@ async function confirmDelete() {
               <v-btn color="error" variant="elevated" @click="confirmDelete" :loading="deletingDocId !== null">
                 Delete
               </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+
+        <!-- Access Log Dialog -->
+        <v-dialog v-model="showLogDialog" max-width="480">
+          <v-card>
+            <v-card-title class="d-flex justify-space-between align-center">
+              <span>Access Log</span>
+              <v-btn icon="mdi-close" variant="text" @click="showLogDialog = false" />
+            </v-card-title>
+            <v-divider />
+            <v-card-text>
+              <div class="text-subtitle-1 mb-2">{{ logDoc?.title || 'Document' }}</div>
+              <v-list density="comfortable">
+                <v-list-item>
+                  <v-list-item-title>Last opened</v-list-item-title>
+                  <v-list-item-subtitle>
+                    {{ formatAccess(logDoc?.last_opened_at) }}
+                    <span v-if="logDoc?.last_opened_name"> • {{ logDoc.last_opened_name }}</span>
+                  </v-list-item-subtitle>
+                </v-list-item>
+                <v-list-item>
+                  <v-list-item-title>Last downloaded</v-list-item-title>
+                  <v-list-item-subtitle>
+                    {{ formatAccess(logDoc?.last_downloaded_at) }}
+                    <span v-if="logDoc?.last_downloaded_name"> • {{ logDoc.last_downloaded_name }}</span>
+                  </v-list-item-subtitle>
+                </v-list-item>
+              </v-list>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer />
+              <v-btn variant="text" @click="showLogDialog = false">Close</v-btn>
             </v-card-actions>
           </v-card>
         </v-dialog>
