@@ -12,7 +12,7 @@ const authStore = useAuthUserStore()
 const docsStore = useDocumentsDataStore()
 const toast = useToast()
 
-const { loading, error, approvedDocuments, approvedUserDocuments } = storeToRefs(docsStore)
+const { loading, error, approvedDocuments, approvedUserDocuments, userDocuments } = storeToRefs(docsStore)
 const { userData } = storeToRefs(authStore)
 
 watch(
@@ -27,7 +27,10 @@ const viewMode = ref<'all' | 'mine'>('mine')
 const searchQuery = ref('')
 
 const displayedDocs = computed(() => {
-  const base = viewMode.value === 'all' ? approvedDocuments.value : approvedUserDocuments.value
+  const base = viewMode.value === 'all'
+    ? approvedDocuments.value
+    // Show all of the user's submissions (approved/pending/rejected) so they can track status
+    : userDocuments.value
   return docsStore.searchDocuments(base as any, searchQuery.value)
 })
 
