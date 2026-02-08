@@ -258,31 +258,6 @@ const closeDialog = () => {
             persistent-hint
           ></v-text-field>
 
-          <!-- Tags (Read-only) -->
-          <div class="mb-4">
-            <label class="text-subtitle-2 mb-2 d-block">Tags (AI Generated)</label>
-            <div class="d-flex flex-wrap gap-2">
-              <v-chip
-                v-for="(tag, index) in tags"
-                :key="index"
-                color="primary"
-                variant="outlined"
-                size="small"
-              >
-                <v-icon start size="small">mdi-tag</v-icon>
-                {{ tag }}
-              </v-chip>
-              <v-chip
-                v-if="tags.length === 0"
-                color="grey"
-                variant="outlined"
-                size="small"
-              >
-                No tags detected
-              </v-chip>
-            </div>
-          </div>
-
           <!-- Additional Information (Editable) -->
           <v-textarea
             v-model="additionalInfo"
