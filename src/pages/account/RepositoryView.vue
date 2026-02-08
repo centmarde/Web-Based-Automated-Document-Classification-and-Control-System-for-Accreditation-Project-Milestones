@@ -85,6 +85,11 @@ const isMine = (doc: any) => {
   return owner === uid
 }
 
+const canNewVersion = (doc: any) => {
+  const status = (doc?.status || '').toLowerCase()
+  return isMine(doc) && status === 'approved'
+}
+
 const showHistory = ref(false)
 const showNewVersion = ref(false)
 const selectedDoc = ref<any | null>(null)
@@ -364,7 +369,7 @@ async function confirmDelete() {
                           </v-btn>
                         </template>
                       </v-tooltip>
-                      <template v-if="isMine(doc)">
+                      <template v-if="canNewVersion(doc)">
                         <v-tooltip text="New version" location="bottom">
                           <template #activator="{ props }">
                             <v-btn
@@ -377,6 +382,8 @@ async function confirmDelete() {
                             </v-btn>
                           </template>
                         </v-tooltip>
+                      </template>
+                      <template v-if="isMine(doc)">
                         <v-tooltip text="Delete" location="bottom">
                           <template #activator="{ props }">
                             <v-btn
