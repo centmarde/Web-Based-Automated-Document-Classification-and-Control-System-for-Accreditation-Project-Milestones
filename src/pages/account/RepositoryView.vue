@@ -7,6 +7,7 @@ import { useDocumentsDataStore } from '@/stores/documentsData'
 import HistoryDialog from '@/components/dialogs/HistoryDialog.vue'
 import DocumentTitle from '@/components/common/DocumentTitle.vue'
 import { useAuthUserStore } from '@/stores/authUser'
+import SelectTag from '@/components/dialogs/SelectTag.vue'
 
 const authStore = useAuthUserStore()
 const docsStore = useDocumentsDataStore()
@@ -25,17 +26,56 @@ watch(
 
 const viewMode = ref<'all' | 'mine'>('mine')
 const searchQuery = ref('')
+const selectedTags = ref<string[]>([])
+const showSelectTag = ref(false)
+
+const docTags = (doc: any): string[] => {
+  const raw = doc?.tags
+  if (!raw) return []
+  if (Array.isArray(raw)) return raw.filter((t) => typeof t === 'string') as string[]
+  if (typeof raw === 'object') {
+    return Object.values(raw).filter((t) => typeof t === 'string') as string[]
+  }
+  return []
+}
+
+const allTagOptions = computed(() => {
+  const source = viewMode.value === 'all' ? approvedDocuments.value : userDocuments.value
+  const set = new Set<string>()
+  source.forEach((d) => docTags(d).forEach((t) => set.add(t)))
+  return Array.from(set).sort((a, b) => a.localeCompare(b))
+})
 
 const displayedDocs = computed(() => {
   const base = viewMode.value === 'all'
     ? approvedDocuments.value
     // Show all of the user's submissions (approved/pending/rejected) so they can track status
     : userDocuments.value
-  return docsStore.searchDocuments(base as any, searchQuery.value)
+
+  const searched = docsStore.searchDocuments(base as any, searchQuery.value)
+
+  // Only require tag selection when viewing all
+  if (viewMode.value === 'all') {
+    if (selectedTags.value.length === 0) return []
+    return searched.filter((doc: any) => {
+      const tags = docTags(doc)
+      if (tags.length === 0) return false
+      return selectedTags.value.some((t) => tags.includes(t))
+    })
+  }
+
+  // Mine view: show everything regardless of tags
+  return searched
 })
 
 onMounted(async () => {
   await docsStore.fetchRepositoryData()
+})
+
+watch(viewMode, (val) => {
+  if (val === 'all' && selectedTags.value.length === 0) {
+    showSelectTag.value = true
+  }
 })
 
 const isMine = (doc: any) => {
@@ -62,6 +102,15 @@ const formatAccess = (timestamp?: string) => timestamp ? docsStore.formatDocumen
 function openHistory(doc: any) {
   selectedDoc.value = doc
   showHistory.value = true
+}
+
+const openTagDialog = () => {
+  showSelectTag.value = true
+}
+
+const handleTagsSaved = (tags: string[]) => {
+  selectedTags.value = tags
+  showSelectTag.value = false
 }
 
 function openNewVersion(doc: any) {
@@ -142,6 +191,15 @@ async function confirmDelete() {
                 <v-btn value="all" variant="tonal" prepend-icon="mdi-earth">All</v-btn>
               </v-btn-toggle>
 
+              <v-btn
+                variant="tonal"
+                color="primary"
+                prepend-icon="mdi-tag"
+                @click="openTagDialog"
+              >
+                {{ selectedTags.length ? `${selectedTags.length} tag${selectedTags.length > 1 ? 's' : ''} selected` : 'Select tags' }}
+              </v-btn>
+
               <v-text-field
                 v-model="searchQuery"
                 placeholder="Search documents..."
@@ -185,7 +243,22 @@ async function confirmDelete() {
           </v-col>
         </v-row>
 
-        <!-- Empty State -->
+        <!-- Require tag selection only when viewing all -->
+        <v-row v-else-if="viewMode === 'all' && selectedTags.length === 0">
+          <v-col cols="12">
+            <div class="text-center py-12">
+              <v-icon size="96" color="grey-lighten-1" class="mb-4">
+                mdi-tag-multiple
+              </v-icon>
+              <h3 class="text-h5 mb-3">Select at least one tag</h3>
+              <p class="text-body-1 text-grey-darken-1">
+                Choose categories to view matching files.
+              </p>
+            </div>
+          </v-col>
+        </v-row>
+
+        <!-- Empty State after selection -->
         <v-row v-else-if="displayedDocs.length === 0">
           <v-col cols="12">
             <div class="text-center py-12">
@@ -414,6 +487,13 @@ async function confirmDelete() {
             </v-card-actions>
           </v-card>
         </v-dialog>
+
+        <SelectTag
+          v-model="showSelectTag"
+          :options="allTagOptions"
+          :selected="selectedTags"
+          @save="handleTagsSaved"
+        />
       </v-container>
     </template>
   </InnerLayoutWrapper>
