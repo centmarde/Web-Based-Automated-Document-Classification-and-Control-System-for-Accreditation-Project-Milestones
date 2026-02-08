@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, watch, ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useToast } from 'vue-toastification'
 import InnerLayoutWrapper from '@/layouts/InnerLayoutWrapper.vue'
 import { useDocumentsDataStore } from '@/stores/documentsData'
 import HistoryDialog from '@/components/dialogs/HistoryDialog.vue'
@@ -9,8 +10,9 @@ import { useAuthUserStore } from '@/stores/authUser'
 
 const authStore = useAuthUserStore()
 const docsStore = useDocumentsDataStore()
+const toast = useToast()
 
-const { loading, error, userDocuments, documents, approvedDocuments, approvedUserDocuments } = storeToRefs(docsStore)
+const { loading, error, approvedDocuments, approvedUserDocuments } = storeToRefs(docsStore)
 const { userData } = storeToRefs(authStore)
 
 watch(
@@ -21,7 +23,6 @@ watch(
   { immediate: true }
 )
 
-// View mode and search (default to user's documents)
 const viewMode = ref<'all' | 'mine'>('mine')
 const searchQuery = ref('')
 
@@ -34,7 +35,6 @@ onMounted(async () => {
   await docsStore.fetchRepositoryData()
 })
 
-// Identify current user's documents
 const isMine = (doc: any) => {
   const uid = userData.value?.id
   if (!uid || !doc) return false
@@ -42,12 +42,19 @@ const isMine = (doc: any) => {
   return owner === uid
 }
 
-// Versioning UI state and handlers
 const showHistory = ref(false)
 const showNewVersion = ref(false)
 const selectedDoc = ref<any | null>(null)
 const newVersionFile = ref<File | null>(null)
 const newVersionNotes = ref('')
+
+const deleteDialog = ref(false)
+const docToDelete = ref<any | null>(null)
+const deletingDocId = ref<number | null>(null)
+const showLogDialog = ref(false)
+const logDoc = ref<any | null>(null)
+
+const formatAccess = (timestamp?: string) => timestamp ? docsStore.formatDocumentDate(timestamp) : '—'
 
 function openHistory(doc: any) {
   selectedDoc.value = doc
@@ -66,6 +73,48 @@ async function submitNewVersion() {
   await docsStore.createNewDocumentVersion(selectedDoc.value.id, newVersionFile.value, { notes: newVersionNotes.value })
   showNewVersion.value = false
   selectedDoc.value = null
+}
+
+function askDelete(doc: any) {
+  if (!isMine(doc)) {
+    toast.error('You can only delete documents you uploaded.')
+    return
+  }
+  docToDelete.value = doc
+  deleteDialog.value = true
+}
+
+function closeDeleteDialog() {
+  deleteDialog.value = false
+  docToDelete.value = null
+}
+
+function openLogDialog(doc: any) {
+  logDoc.value = doc
+  showLogDialog.value = true
+}
+
+async function confirmDelete() {
+  if (!docToDelete.value) return
+  if (!isMine(docToDelete.value)) {
+    toast.error('You can only delete documents you uploaded.')
+    closeDeleteDialog()
+    return
+  }
+
+  try {
+    deletingDocId.value = docToDelete.value.id
+    await docsStore.deleteDocumentWithFile(docToDelete.value.id)
+    await docsStore.fetchRepositoryData()
+    toast.success('Document deleted')
+  } catch (err) {
+    console.error('Failed to delete document:', err)
+    const message = err instanceof Error ? err.message : 'Failed to delete document'
+    toast.error(message)
+  } finally {
+    deletingDocId.value = null
+    closeDeleteDialog()
+  }
 }
 
 // History versions and filtering are now encapsulated in HistoryDialog
@@ -173,6 +222,20 @@ async function submitNewVersion() {
                     >
                       {{ doc.status }}
                     </v-chip>
+                    <v-tooltip text="View access log" location="bottom">
+                      <template #activator="{ props }">
+                        <v-btn
+                          v-bind="props"
+                          icon
+                          variant="text"
+                          size="small"
+                          @click="openLogDialog(doc)"
+                          aria-label="Open access log"
+                        >
+                          <v-icon>mdi-information-outline</v-icon>
+                        </v-btn>
+                      </template>
+                    </v-tooltip>
                     <v-tooltip text="History" location="bottom">
                       <template #activator="{ props }">
                         <v-btn
@@ -195,37 +258,66 @@ async function submitNewVersion() {
                   {{ docsStore.formatDocumentDate(doc.created_at) }}
                 </div>
 
-                <div class="d-flex ga-2 mt-2 align-center flex-wrap">
-                  <v-btn
-                    :disabled="!doc.attach_file"
-                    color="primary"
-                    variant="elevated"
-                    prepend-icon="mdi-open-in-new"
-                    @click="docsStore.openDocumentFile(doc.attach_file)"
-                  >
-                    Open
-                  </v-btn>
-                  <v-btn
-                    :disabled="!doc.attach_file"
-                    color="primary"
-                    variant="outlined"
-                    prepend-icon="mdi-download"
-                    @click="docsStore.downloadDocumentFile(doc.attach_file, (doc.title || 'document'))"
-                  >
-                    Download
-                  </v-btn>
-                  <template v-if="isMine(doc)">
-                    <v-btn
-                      size="small"
-                      color="success"
-                      variant="tonal"
-                      prepend-icon="mdi-file-plus"
-                      @click="openNewVersion(doc)"
-                    >
-                      New Version
-                    </v-btn>
-                  </template>
-                </div>
+
+                <v-card-actions class="px-0 pt-2">
+                  <v-row dense class="w-100">
+                    <v-col cols="12" class="d-flex ga-3 align-center flex-wrap">
+                      <v-tooltip text="Open" location="bottom">
+                        <template #activator="{ props }">
+                          <v-btn
+                            v-bind="props"
+                            icon
+                            class="action-icon"
+                            :disabled="!doc.attach_file"
+                            @click="docsStore.openDocumentWithLog(doc)"
+                          >
+                            <v-icon>mdi-open-in-new</v-icon>
+                          </v-btn>
+                        </template>
+                      </v-tooltip>
+                      <v-tooltip text="Download" location="bottom">
+                        <template #activator="{ props }">
+                          <v-btn
+                            v-bind="props"
+                            icon
+                            class="action-icon"
+                            :disabled="!doc.attach_file"
+                            @click="docsStore.downloadDocumentWithLog(doc)"
+                          >
+                            <v-icon>mdi-download</v-icon>
+                          </v-btn>
+                        </template>
+                      </v-tooltip>
+                      <template v-if="isMine(doc)">
+                        <v-tooltip text="New version" location="bottom">
+                          <template #activator="{ props }">
+                            <v-btn
+                              v-bind="props"
+                              icon
+                              class="action-icon"
+                              @click="openNewVersion(doc)"
+                            >
+                              <v-icon>mdi-file-plus</v-icon>
+                            </v-btn>
+                          </template>
+                        </v-tooltip>
+                        <v-tooltip text="Delete" location="bottom">
+                          <template #activator="{ props }">
+                            <v-btn
+                              v-bind="props"
+                              icon
+                              class="action-icon"
+                              @click="askDelete(doc)"
+                              :loading="deletingDocId === doc.id"
+                            >
+                              <v-icon>mdi-delete</v-icon>
+                            </v-btn>
+                          </template>
+                        </v-tooltip>
+                      </template>
+                    </v-col>
+                  </v-row>
+                </v-card-actions>
               </v-card-text>
             </v-card>
           </v-col>
@@ -266,6 +358,59 @@ async function submitNewVersion() {
             </v-card-actions>
           </v-card>
         </v-dialog>
+
+        <!-- Delete Confirmation Dialog -->
+        <v-dialog v-model="deleteDialog" max-width="420">
+          <v-card>
+            <v-card-title class="text-h6">Delete Document</v-card-title>
+            <v-card-text>
+              Are you sure you want to delete
+              "{{ docToDelete?.title || 'this document' }}"?
+              This will remove the file and its metadata.
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer />
+              <v-btn variant="text" @click="closeDeleteDialog" :disabled="deletingDocId !== null">Cancel</v-btn>
+              <v-btn color="error" variant="elevated" @click="confirmDelete" :loading="deletingDocId !== null">
+                Delete
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+
+        <!-- Access Log Dialog -->
+        <v-dialog v-model="showLogDialog" max-width="480">
+          <v-card>
+            <v-card-title class="d-flex justify-space-between align-center">
+              <span>Access Log</span>
+              <v-btn icon="mdi-close" variant="text" @click="showLogDialog = false" />
+            </v-card-title>
+            <v-divider />
+            <v-card-text>
+              <div class="text-subtitle-1 mb-2">{{ logDoc?.title || 'Document' }}</div>
+              <v-list density="comfortable">
+                <v-list-item>
+                  <v-list-item-title>Last opened</v-list-item-title>
+                  <v-list-item-subtitle>
+                    {{ formatAccess(logDoc?.last_opened_at) }}
+                    <span v-if="logDoc?.last_opened_name"> • {{ logDoc.last_opened_name }}</span>
+                  </v-list-item-subtitle>
+                </v-list-item>
+                <v-list-item>
+                  <v-list-item-title>Last downloaded</v-list-item-title>
+                  <v-list-item-subtitle>
+                    {{ formatAccess(logDoc?.last_downloaded_at) }}
+                    <span v-if="logDoc?.last_downloaded_name"> • {{ logDoc.last_downloaded_name }}</span>
+                  </v-list-item-subtitle>
+                </v-list-item>
+              </v-list>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer />
+              <v-btn variant="text" @click="showLogDialog = false">Close</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
       </v-container>
     </template>
   </InnerLayoutWrapper>
@@ -275,7 +420,6 @@ async function submitNewVersion() {
 /* Keep visuals consistent with admin cards */
 .v-card {
   transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-  height: 280px; /* Fixed height for all cards */
   width: 100%; /* Full width of the column */
   display: flex;
   flex-direction: column;
@@ -300,8 +444,26 @@ async function submitNewVersion() {
   background-color: color-mix(in srgb, var(--v-theme-primary) 10%, transparent);
 }
 
-/* Ensure action buttons stay at bottom */
-.d-flex.ga-2.mt-2 {
-  margin-top: auto !important;
+.action-icon {
+  background-color: #111 !important;
+  color: #fff !important;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
+
+.action-icon:hover {
+  background-color: #000 !important;
+}
+
+.action-icon .v-icon {
+  color: inherit;
+}
+
+.action-icon:disabled {
+  opacity: 0.35;
+  box-shadow: none;
+}
+
 </style>
