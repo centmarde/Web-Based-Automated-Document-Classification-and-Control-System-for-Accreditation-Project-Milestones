@@ -24,6 +24,8 @@ export type Document = {
   last_downloaded_at?: string
   last_opened_name?: string
   last_downloaded_name?: string
+  opened_log?: Array<{ name?: string; at?: string }>
+  downloaded_log?: Array<{ name?: string; at?: string }>
 }
 
 export type CreateDocumentInput = Omit<Document, 'id' | 'created_at'>
@@ -264,9 +266,32 @@ export const useDocumentsDataStore = defineStore('documentsData', () => {
         user?.user_metadata?.email ||
         uid
       const nowIso = new Date().toISOString()
+      const doc = getDocumentFromState(documentId) || await fetchDocumentById(documentId)
+
+      const openedLog = Array.isArray(doc?.opened_log) ? [...doc!.opened_log] : []
+      const downloadedLog = Array.isArray(doc?.downloaded_log) ? [...doc!.downloaded_log] : []
+
+      if (action === 'open') {
+        openedLog.unshift({ name, at: nowIso })
+        if (openedLog.length > 5) openedLog.length = 5
+      } else {
+        downloadedLog.unshift({ name, at: nowIso })
+        if (downloadedLog.length > 5) downloadedLog.length = 5
+      }
+
       const updates: UpdateDocumentInput = action === 'open'
-        ? { last_opened_by: uid, last_opened_at: nowIso, last_opened_name: name }
-        : { last_downloaded_by: uid, last_downloaded_at: nowIso, last_downloaded_name: name }
+        ? {
+            last_opened_by: uid,
+            last_opened_at: nowIso,
+            last_opened_name: name,
+            opened_log: openedLog as any,
+          }
+        : {
+            last_downloaded_by: uid,
+            last_downloaded_at: nowIso,
+            last_downloaded_name: name,
+            downloaded_log: downloadedLog as any,
+          }
       await updateDocument(documentId, updates)
     } catch (err) {
       console.error('Error recording document access:', err)
