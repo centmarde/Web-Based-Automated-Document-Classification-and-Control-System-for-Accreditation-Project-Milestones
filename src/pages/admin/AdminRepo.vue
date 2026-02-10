@@ -276,7 +276,7 @@ const confirmDelete = async () => {
 									</v-menu>
 								</div>
 
-								<div class="text-body-2 text-grey-darken-1 mb-4">
+								<div class="text-body-2 text-grey-darken-1 owner-block">
 									<div class="d-flex justify-space-between">
 										<span>Owner</span>
 										<strong>{{ ownerName(doc.user_id) }}</strong>
@@ -287,7 +287,7 @@ const confirmDelete = async () => {
 									</div>
 								</div>
 
-								<v-card-actions class="px-0 py-0 mt-2 actions-tight mt-auto">
+								<v-card-actions class="px-0 py-0 mt-2 actions-tight">
 									<div class="d-flex justify-space-between align-center w-100">
 										<v-btn
 											color="primary"
@@ -377,5 +377,10 @@ const confirmDelete = async () => {
 	background: rgba(var(--v-theme-surface), 0.98);
 	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 	padding: 4px;
+}
+
+.owner-block {
+	margin-top: auto;
+	margin-bottom: 12px;
 }
 </style>
