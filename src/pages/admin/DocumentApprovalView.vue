@@ -7,6 +7,16 @@ import { useDocumentsDataStore } from '@/stores/documentsData'
 const docsStore = useDocumentsDataStore()
 const { loading, error, adminVersionItems } = storeToRefs(docsStore)
 
+const versionTags = (item: any): string[] => {
+  const raw = item?.version?.tags
+  if (!raw) return []
+  if (Array.isArray(raw)) return raw.filter((t) => typeof t === 'string') as string[]
+  if (typeof raw === 'object') {
+    return Object.values(raw).filter((t) => typeof t === 'string') as string[]
+  }
+  return []
+}
+
 // UI filter state (applies to version status)
 const filter = ref<'all' | 'pending' | 'approved' | 'rejected'>('pending')
 
@@ -131,6 +141,19 @@ watch(filter, loadDocs)
                 </h3>
                 <div class="text-caption text-grey-darken-1 mb-3">
                   {{ item.version?.created_at ? new Date(item.version.created_at).toLocaleString() : '—' }}
+                </div>
+
+                <div v-if="versionTags(item).length" class="d-flex flex-wrap ga-2 mb-3">
+                  <v-chip
+                    v-for="tag in versionTags(item)"
+                    :key="tag"
+                    size="small"
+                    color="primary"
+                    variant="tonal"
+                    prepend-icon="mdi-tag"
+                  >
+                    {{ tag }}
+                  </v-chip>
                 </div>
 
                 <v-card-actions class="px-0 py-0 mt-2 actions-tight">

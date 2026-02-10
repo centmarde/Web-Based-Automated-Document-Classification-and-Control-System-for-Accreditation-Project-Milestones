@@ -18,6 +18,12 @@ export type Document = {
   version?: Record<string, unknown>
   last_edited_by?: string
   updated_at?: string
+  last_opened_by?: string
+  last_opened_at?: string
+  last_downloaded_by?: string
+  last_downloaded_at?: string
+  last_opened_name?: string
+  last_downloaded_name?: string
 }
 
 export type CreateDocumentInput = Omit<Document, 'id' | 'created_at'>
@@ -55,7 +61,6 @@ export const useDocumentsDataStore = defineStore('documentsData', () => {
         .insert([documentData])
         .select()
         .single()
-
       if (supabaseError) throw supabaseError
 
       if (data) {
@@ -247,6 +252,27 @@ export const useDocumentsDataStore = defineStore('documentsData', () => {
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 
+  async function recordDocumentAccess(documentId: number, action: 'open' | 'download') {
+    try {
+      const authStore = useAuthUserStore()
+      const user = authStore.userData
+      const uid = user?.id
+      const name =
+        user?.user_metadata?.full_name ||
+        (user as any)?.full_name ||
+        user?.email ||
+        user?.user_metadata?.email ||
+        uid
+      const nowIso = new Date().toISOString()
+      const updates: UpdateDocumentInput = action === 'open'
+        ? { last_opened_by: uid, last_opened_at: nowIso, last_opened_name: name }
+        : { last_downloaded_by: uid, last_downloaded_at: nowIso, last_downloaded_name: name }
+      await updateDocument(documentId, updates)
+    } catch (err) {
+      console.error('Error recording document access:', err)
+    }
+  }
+
   // Trigger a browser download for a given public URL
   function downloadDocumentFile(url?: string, fileName?: string) {
     if (!url) return
@@ -262,6 +288,18 @@ export const useDocumentsDataStore = defineStore('documentsData', () => {
       // Fallback to opening in a new tab
       openDocumentFile(url)
     }
+  }
+
+  async function openDocumentWithLog(doc?: Document) {
+    if (!doc?.attach_file || !doc.id) return
+    openDocumentFile(doc.attach_file)
+    await recordDocumentAccess(doc.id, 'open')
+  }
+
+  async function downloadDocumentWithLog(doc?: Document) {
+    if (!doc?.attach_file || !doc.id) return
+    downloadDocumentFile(doc.attach_file, doc.title || 'document')
+    await recordDocumentAccess(doc.id, 'download')
   }
 
   // Derived lists for repository views
@@ -795,7 +833,7 @@ export const useDocumentsDataStore = defineStore('documentsData', () => {
     deleteDocument,
     fetchDocumentsByUserId,
     fetchDocumentsByStatus,
-  fetchDocumentsForCurrentUser,
+    fetchDocumentsForCurrentUser,
     clearCurrentDocument,
     clearError,
 
@@ -808,12 +846,14 @@ export const useDocumentsDataStore = defineStore('documentsData', () => {
     // extra state + helpers
     userDocuments,
     adminDocuments,
-  adminVersionItems,
+    adminVersionItems,
     approvedDocuments,
     approvedUserDocuments,
     formatDocumentDate,
     openDocumentFile,
     downloadDocumentFile,
+    openDocumentWithLog,
+    downloadDocumentWithLog,
     searchDocuments,
     fetchRepositoryData,
   // versioning
