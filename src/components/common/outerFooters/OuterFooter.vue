@@ -2,14 +2,14 @@
   <v-footer
     v-if="config?.showFooter && footerConfig"
     app
-    class="text-white"
+    class="text-white py-1"
     :color="footerConfig.color"
   >
-    <v-container>
-      <v-row align="center" justify="space-between">
-        <v-col cols="12" md="6">
+    <v-container class="py-1">
+      <v-row align="center" justify="space-between" class="g-2">
+        <v-col cols="12" md="6" class="py-1">
           <div class="d-flex align-center">
-            <v-icon class="me-2" :icon="footerConfig.icon" size="large" />
+            <v-icon class="me-2" :icon="footerConfig.icon" size="28" />
             <div>
               <div class="text-h6 font-weight-bold">
                 {{ footerConfig.companyName }}
@@ -21,15 +21,16 @@
           </div>
         </v-col>
 
-        <v-col class="text-md-end text-center" cols="12" md="6">
-          <div class="mb-2">
+        <v-col class="text-md-end text-center py-1" cols="12" md="6">
+          <div class="mb-1">
             <v-btn
               v-for="social in footerConfig.socialLinks"
               :key="social.platform"
               :aria-label="social.label"
-              class="me-2"
+              class="me-1"
               color="on-primary"
               icon
+              size="small"
               variant="text"
               @click="openLink(social.url)"
             >
@@ -44,12 +45,12 @@
       </v-row>
       <!-- Thesis Team Section -->
       <template v-if="footerConfig.thesisTeam?.enabled">
-        <v-divider class="my-4 " />
+        <v-divider class="my-2" />
 
         <v-row>
           <v-col cols="12">
-            <div class="text-center mb-4">
-              <div class="text-h6 font-weight-bold">
+            <div class="text-center mb-2">
+              <div class="text-h6 font-weight-bold mb-1">
                 {{ footerConfig.thesisTeam.title }}
               </div>
               <div class="text-caption text-grey-lighten-1">
@@ -64,13 +65,13 @@
                 cols="12"
                 sm="6"
                 md="3"
-                class="d-flex justify-center"
+                class="d-flex justify-center py-1"
               >
-                <div class="d-flex align-center mb-3">
+                <div class="d-flex align-center">
                   <v-avatar
                     :image="member.avatar"
-                    size="48"
-                    class="me-3"
+                    size="40"
+                    class="me-2"
                     color="primary"
                   >
                     <v-icon
@@ -94,7 +95,7 @@
           </v-col>
         </v-row>
       </template>
-      <v-divider class="my-4" />
+      <v-divider class="my-2" />
 
       <v-row>
         <v-col class="text-center" cols="12">
@@ -139,3 +140,5 @@ function openLink(url: string) {
   window.open(url, "_blank", "noopener,noreferrer");
 }
 </script>
+
+
