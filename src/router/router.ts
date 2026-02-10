@@ -43,6 +43,11 @@ const routes = setupLayouts([
     meta: { requiresAuth: true },
   },
   {
+    path: "/admin/repository",
+    component: () => import("@/pages/admin/AdminRepo.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
     path: "/account/repository",
     component: () => import("../pages/account/RepositoryView.vue"),
     meta: { requiresAuth: true },
