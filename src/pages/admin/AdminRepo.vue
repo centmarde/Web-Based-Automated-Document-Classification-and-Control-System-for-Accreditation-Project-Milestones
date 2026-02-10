@@ -2,6 +2,7 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import InnerLayoutWrapper from '@/layouts/InnerLayoutWrapper.vue'
+import ConfirmDelete from '@/pages/admin/dialogs/ConfirmDelete.vue'
 import { useDocumentsDataStore } from '@/stores/documentsData'
 import { useAuthUserStore } from '@/stores/authUser'
 
@@ -15,6 +16,8 @@ const filter = ref<StatusFilter>('all')
 const deletingId = ref<number | null>(null)
 const search = ref('')
 const tagMenus = ref<Record<number, boolean>>({})
+const confirmDialog = ref(false)
+const docToDelete = ref<number | null>(null)
 
 const loadDocs = async () => {
 	await docsStore.fetchAdminDocuments(filter.value)
@@ -81,15 +84,21 @@ const filteredDocuments = computed(() => {
 	})
 })
 
-const handleDelete = async (docId: number) => {
-	const confirmed = window.confirm('Delete this document and its file?')
-	if (!confirmed) return
-	deletingId.value = docId
+const openDelete = (docId: number) => {
+	docToDelete.value = docId
+	confirmDialog.value = true
+}
+
+const confirmDelete = async () => {
+	if (docToDelete.value == null) return
+	deletingId.value = docToDelete.value
 	try {
-		await docsStore.deleteDocumentWithFile(docId)
+		await docsStore.deleteDocumentWithFile(docToDelete.value)
 		await docsStore.fetchAdminDocuments(filter.value)
+		confirmDialog.value = false
 	} finally {
 		deletingId.value = null
+		docToDelete.value = null
 	}
 }
 </script>
@@ -295,7 +304,7 @@ const handleDelete = async (docId: number) => {
 											prepend-icon="mdi-delete"
 											size="small"
 											:loading="deletingId === doc.id"
-											@click="handleDelete(doc.id)">
+											@click="openDelete(doc.id)">
 											Delete
 										</v-btn>
 									</div>
@@ -304,6 +313,14 @@ const handleDelete = async (docId: number) => {
 						</v-card>
 					</v-col>
 				</v-row>
+
+				<ConfirmDelete
+					v-model="confirmDialog"
+					title="Delete Document"
+					:message="'Are you sure you want to delete this document and its file? This action cannot be undone.'"
+					:loading="deletingId !== null"
+					@confirm="confirmDelete"
+				/>
 			</v-container>
 		</template>
 	</InnerLayoutWrapper>
