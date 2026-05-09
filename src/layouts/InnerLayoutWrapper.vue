@@ -56,6 +56,7 @@ onMounted(async () => {
     <OuterFooter
       v-if="data?.ui?.footerComponent === '1'"
       :config="data?.ui"
+      :compact="true"
     />
     <OuterFooter2
       v-else-if="data?.ui?.footerComponent === '2'"

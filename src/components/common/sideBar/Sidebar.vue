@@ -234,7 +234,7 @@ watch(
       <v-list-item class="pa-4">
         <v-list-item-content>
           <v-list-item-subtitle class="text-caption grey--text text-center">
-            QR BASE
+            CCIS Accreditation System v1.0
           </v-list-item-subtitle>
         </v-list-item-content>
       </v-list-item>
