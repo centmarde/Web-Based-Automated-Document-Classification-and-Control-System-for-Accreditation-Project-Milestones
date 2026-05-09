@@ -54,7 +54,7 @@
               size="large"
               block
               :loading="isLoading"
-              :disabled="!formValid || isLoading"
+              :disabled="isLoading"
               class="mb-4"
             >
               Sign In
@@ -132,7 +132,9 @@ const clearErrors = () => {
 };
 
 const handleLogin = async () => {
-  if (!formValid.value) {
+  const validationResult = await formRef.value?.validate();
+
+  if (!validationResult?.valid) {
     toast.error("Please fill in all required fields correctly");
     return;
   }
