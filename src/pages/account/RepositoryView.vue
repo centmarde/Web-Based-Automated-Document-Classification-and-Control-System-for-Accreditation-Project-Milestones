@@ -104,6 +104,12 @@ const logDoc = ref<any | null>(null)
 
 const formatAccess = (timestamp?: string) => timestamp ? docsStore.formatDocumentDate(timestamp) : '—'
 
+const formatLogItem = (entry?: { name?: string; at?: string }) => {
+  if (!entry) return '—'
+  const time = entry.at ? docsStore.formatDocumentDate(entry.at) : '—'
+  return entry.name ? `${time} • ${entry.name}` : time
+}
+
 function openHistory(doc: any) {
   selectedDoc.value = doc
   showHistory.value = true
@@ -462,7 +468,7 @@ async function confirmDelete() {
         </v-dialog>
 
         <!-- Access Log Dialog -->
-        <v-dialog v-model="showLogDialog" max-width="480">
+        <v-dialog v-model="showLogDialog" max-width="520">
           <v-card>
             <v-card-title class="d-flex justify-space-between align-center">
               <span>Access Log</span>
@@ -471,21 +477,40 @@ async function confirmDelete() {
             <v-divider />
             <v-card-text>
               <div class="text-subtitle-1 mb-2">{{ logDoc?.title || 'Document' }}</div>
-              <v-list density="comfortable">
-                <v-list-item>
-                  <v-list-item-title>Last opened</v-list-item-title>
-                  <v-list-item-subtitle>
-                    {{ formatAccess(logDoc?.last_opened_at) }}
-                    <span v-if="logDoc?.last_opened_name"> • {{ logDoc.last_opened_name }}</span>
-                  </v-list-item-subtitle>
-                </v-list-item>
-                <v-list-item>
-                  <v-list-item-title>Last downloaded</v-list-item-title>
-                  <v-list-item-subtitle>
-                    {{ formatAccess(logDoc?.last_downloaded_at) }}
-                    <span v-if="logDoc?.last_downloaded_name"> • {{ logDoc.last_downloaded_name }}</span>
-                  </v-list-item-subtitle>
-                </v-list-item>
+              <v-list density="compact" class="pa-0">
+                <v-list-subheader>Recent opens (last 5)</v-list-subheader>
+                <template v-if="logDoc?.opened_log?.length">
+                  <v-list-item
+                    v-for="(entry, idx) in logDoc.opened_log"
+                    :key="'open-'+idx"
+                  >
+                    <v-list-item-title>{{ formatLogItem(entry) }}</v-list-item-title>
+                  </v-list-item>
+                </template>
+                <template v-else>
+                  <v-list-item>
+                    <v-list-item-title>{{ formatAccess(logDoc?.last_opened_at) }}</v-list-item-title>
+                    <v-list-item-subtitle v-if="logDoc?.last_opened_name">{{ logDoc.last_opened_name }}</v-list-item-subtitle>
+                  </v-list-item>
+                </template>
+
+                <v-divider class="my-1" />
+
+                <v-list-subheader>Recent downloads (last 5)</v-list-subheader>
+                <template v-if="logDoc?.downloaded_log?.length">
+                  <v-list-item
+                    v-for="(entry, idx) in logDoc.downloaded_log"
+                    :key="'dl-'+idx"
+                  >
+                    <v-list-item-title>{{ formatLogItem(entry) }}</v-list-item-title>
+                  </v-list-item>
+                </template>
+                <template v-else>
+                  <v-list-item>
+                    <v-list-item-title>{{ formatAccess(logDoc?.last_downloaded_at) }}</v-list-item-title>
+                    <v-list-item-subtitle v-if="logDoc?.last_downloaded_name">{{ logDoc.last_downloaded_name }}</v-list-item-subtitle>
+                  </v-list-item>
+                </template>
               </v-list>
             </v-card-text>
             <v-card-actions>

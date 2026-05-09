@@ -37,8 +37,8 @@
   "author": "Accreditation System Development Team",
   "lastUpdated": "2025-10-16",
   "theme": {
-    "primaryColor": "#005a84",
-    "secondaryColor": "#E3F2FD"
+    "primaryColor": "#E7964E",
+    "secondaryColor": "#f9efe4"
   },
   "ui": {
     "showNavbar": true,
