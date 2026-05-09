@@ -1,15 +1,15 @@
 <script lang="ts" setup>
-import { onMounted } from 'vue'
-import { useLandingController } from '@/controller/landingController'
-import Sidebar1 from '@/components/common/sideBar/Sidebar.vue'
+import { onMounted } from "vue";
+import { useLandingController } from "@/controller/landingController";
+import Sidebar1 from "@/components/common/sideBar/Sidebar.vue";
 
-const props = defineProps()
+const props = defineProps();
 
-const { data, fetchLandingData } = useLandingController()
+const { data, fetchLandingData } = useLandingController();
 
 onMounted(async () => {
-  await fetchLandingData()
-})
+  await fetchLandingData();
+});
 </script>
 
 <template>
@@ -65,13 +65,11 @@ onMounted(async () => {
   </v-app>
 </template>
 
-
-
 <style scoped>
 /* App with background */
 .app-with-background {
   position: relative;
-  background-image: url('/images/bg.jpg');
+  background-image: url("/images/bg.jpg");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

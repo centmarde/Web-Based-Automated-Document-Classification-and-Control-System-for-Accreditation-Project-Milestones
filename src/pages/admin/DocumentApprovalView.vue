@@ -4,7 +4,7 @@ import { storeToRefs } from "pinia";
 import InnerLayoutWrapper from "@/layouts/InnerLayoutWrapper.vue";
 import { useDocumentsDataStore } from "@/stores/documentsData";
 import { useAuthUserStore } from "@/stores/authUser";
-import ConfirmDelete from "@/pages/admin/dialogs/ConfirmDelete.vue";
+import ApprovalConfirmDialog from "@/pages/admin/dialogs/ApprovalConfirmDialog.vue";
 
 const docsStore = useDocumentsDataStore();
 const { loading, error, adminVersionItems } = storeToRefs(docsStore);
@@ -324,8 +324,9 @@ const itemKey = (item: any) => `${item.documentId}-${item.version?.v ?? 0}`;
         </v-row>
       </v-container>
 
-      <ConfirmDelete
+      <ApprovalConfirmDialog
         v-model="confirmDialogOpen"
+        :action="confirmAction || 'approve'"
         :title="confirmTitle"
         :message="confirmMessage"
         :loading="loading"
