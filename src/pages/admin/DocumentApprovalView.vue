@@ -1,11 +1,35 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import InnerLayoutWrapper from '@/layouts/InnerLayoutWrapper.vue'
 import { useDocumentsDataStore } from '@/stores/documentsData'
+import { useAuthUserStore } from '@/stores/authUser'
 
 const docsStore = useDocumentsDataStore()
 const { loading, error, adminVersionItems } = storeToRefs(docsStore)
+const authStore = useAuthUserStore()
+
+const tagMenus = ref<Record<string, boolean>>({})
+const ownersMap = computed(() => {
+  const map: Record<string, string> = {}
+  authStore.users.forEach((u) => {
+    const name = u.full_name || u.user_metadata?.full_name || u.email || u.id
+    map[u.id] = name
+  })
+  return map
+})
+
+const ownerName = (userId?: string) => {
+  if (!userId) return 'Unknown'
+  return ownersMap.value[userId] || userId
+}
+
+const statusColor = (status?: string) => {
+  const s = (status || '').toLowerCase()
+  if (s === 'approved') return 'success'
+  if (s === 'rejected') return 'error'
+  return 'info'
+}
 
 const versionTags = (item: any): string[] => {
   const raw = item?.version?.tags
@@ -24,8 +48,18 @@ const loadDocs = async () => {
   await docsStore.fetchAdminVersionItems(filter.value)
 }
 
-onMounted(loadDocs)
+const loadOwners = async () => {
+  if (!authStore.users.length) {
+    await authStore.getAllUsers()
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([loadDocs(), loadOwners()])
+})
 watch(filter, loadDocs)
+
+const itemKey = (item: any) => `${item.documentId}-${item.version?.v ?? 0}`
 </script>
 
 <template>
@@ -101,14 +135,15 @@ watch(filter, loadDocs)
         <v-row v-else>
           <v-col
             v-for="item in adminVersionItems"
-            :key="item.documentId + '-' + (item.version?.v || 0)"
+            :key="itemKey(item)"
             cols="12"
             sm="6"
             md="4"
             lg="3"
+            class="d-flex"
           >
-            <v-card class="mx-auto" elevation="2">
-              <v-card-text class="pa-4">
+            <v-card class="mx-auto doc-card" elevation="2">
+              <v-card-text class="pa-4 card-body">
                 <div class="d-flex align-center justify-space-between mb-3">
                   <div class="d-flex align-center ga-2">
                     <v-avatar size="40" color="primary">
@@ -128,7 +163,7 @@ watch(filter, loadDocs)
                   <v-chip
                     v-if="item.version?.status"
                     size="small"
-                    :color="item.version?.status === 'approved' ? 'success' : item.version?.status === 'rejected' ? 'error' : 'info'"
+                    :color="statusColor(item.version?.status)"
                     variant="tonal"
                   >
                     {{ item.version?.status || 'pending' }}
@@ -143,17 +178,59 @@ watch(filter, loadDocs)
                   {{ item.version?.created_at ? new Date(item.version.created_at).toLocaleString() : '—' }}
                 </div>
 
-                <div v-if="versionTags(item).length" class="d-flex flex-wrap ga-2 mb-3">
-                  <v-chip
-                    v-for="tag in versionTags(item)"
-                    :key="tag"
-                    size="small"
-                    color="primary"
-                    variant="tonal"
-                    prepend-icon="mdi-tag"
+                <div class="mb-3">
+                  <v-menu
+                    v-model="tagMenus[itemKey(item)]"
+                    transition="scale-transition"
+                    location="bottom"
+                    open-on-click
+                    content-class="tags-menu"
                   >
-                    {{ tag }}
-                  </v-chip>
+                    <template #activator="{ props }">
+                      <v-btn
+                        size="small"
+                        variant="tonal"
+                        color="primary"
+                        prepend-icon="mdi-tag-multiple"
+                        v-bind="props"
+                      >
+                        Tags ({{ versionTags(item).length || 0 }})
+                      </v-btn>
+                    </template>
+
+                    <div class="d-flex flex-wrap ga-2 pa-2 tags-menu-content">
+                      <v-chip
+                        v-for="tag in versionTags(item)"
+                        :key="tag"
+                        size="small"
+                        color="primary"
+                        variant="tonal"
+                        prepend-icon="mdi-tag"
+                      >
+                        {{ tag }}
+                      </v-chip>
+                      <v-chip
+                        v-if="!versionTags(item).length"
+                        size="small"
+                        variant="outlined"
+                        color="grey"
+                        prepend-icon="mdi-tag-outline"
+                      >
+                        No tags
+                      </v-chip>
+                    </div>
+                  </v-menu>
+                </div>
+
+                <div class="text-body-2 text-grey-darken-1 owner-block">
+                  <div class="d-flex justify-space-between">
+                    <span>Owner</span>
+                    <strong>{{ ownerName(item.ownerId) }}</strong>
+                  </div>
+                  <div class="d-flex justify-space-between">
+                    <span>Version Created</span>
+                    <strong>{{ item.version?.created_at ? new Date(item.version.created_at).toLocaleString() : '—' }}</strong>
+                  </div>
                 </div>
 
                 <v-card-actions class="px-0 py-0 mt-2 actions-tight">
@@ -196,5 +273,35 @@ watch(filter, loadDocs)
 .v-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.doc-card {
+  height: 100%;
+  display: flex;
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.tags-menu-content {
+  max-width: 320px;
+  background: rgba(var(--v-theme-surface), 0.95);
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+}
+
+.tags-menu :deep(.v-overlay__content) {
+  border-radius: 10px;
+  background: rgba(var(--v-theme-surface), 0.98);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  padding: 4px;
+}
+
+.owner-block {
+  margin-top: auto;
+  margin-bottom: 12px;
 }
 </style>

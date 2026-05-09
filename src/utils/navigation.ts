@@ -45,6 +45,13 @@ export const navigationConfig: NavigationGroup[] = [
       },
 
       {
+        title: 'Admin Repository',
+        icon: 'mdi-file-cabinet',
+        route: '/admin/repository',
+        permission: 'admin.repository.manage'
+      },
+
+      {
         title: 'User Management',
         icon: 'mdi-account-multiple',
         route: '/admin/user-management',
