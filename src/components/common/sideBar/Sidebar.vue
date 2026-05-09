@@ -1,96 +1,158 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { useDisplay } from 'vuetify'
-import { useRouter, useRoute } from 'vue-router'
-import { useAuthUserStore } from '@/stores/authUser'
-import { navigationConfig } from '@/utils/navigation'
+import { ref, computed, watch } from "vue";
+import { useDisplay } from "vuetify";
+import { useRouter, useRoute } from "vue-router";
+import { useAuthUserStore } from "@/stores/authUser";
+import { useUserPagesStore } from "@/stores/pages";
+import { navigationConfig } from "@/utils/navigation";
 
 // Vuetify display composable for responsive design
-const { smAndDown } = useDisplay()
+const { smAndDown } = useDisplay();
 
 // Vue Router
-const router = useRouter()
-const route = useRoute()
+const router = useRouter();
+const route = useRoute();
 
 // Auth store
-const authStore = useAuthUserStore()
+const authStore = useAuthUserStore();
+const pagesStore = useUserPagesStore();
 
 // Reactive state for sidebar
-const isExpanded = ref(true)
+const isExpanded = ref(true);
 
 // Control admin group expansion - make it persistent
-const adminGroupExpanded = ref(true)
+const adminGroupExpanded = ref(true);
 
 // Control organization group expansion - make it persistent
-const organizationGroupExpanded = ref(true)
+const organizationGroupExpanded = ref(true);
 
 // Control my account group expansion - make it persistent
-const myAccountGroupExpanded = ref(true)
+const myAccountGroupExpanded = ref(true);
+
+const permissionsLoading = ref(true);
+const allowedRoutes = ref<Set<string>>(new Set());
+
+const normalizePath = (path: string) => {
+  const normalized = path.replace(/\/+$/, "");
+  return normalized.length > 0 ? normalized : "/";
+};
 
 // Watch for route changes and keep admin group expanded if we're on an admin route
 watch(
   () => route.path,
   (newPath) => {
-    if (newPath.startsWith('/admin') ) {
-      adminGroupExpanded.value = true
+    if (newPath.startsWith("/admin")) {
+      adminGroupExpanded.value = true;
     }
-    if (newPath.startsWith('/organization')) {
-      organizationGroupExpanded.value = true
+    if (newPath.startsWith("/organization")) {
+      organizationGroupExpanded.value = true;
     }
-    if (newPath.startsWith('/account')) {
-      myAccountGroupExpanded.value = true
+    if (newPath.startsWith("/account")) {
+      myAccountGroupExpanded.value = true;
     }
   },
-  { immediate: true }
-)
+  { immediate: true },
+);
 
 // Hide sidebar on small screens
-const showSidebar = computed(() => !smAndDown.value)
+const showSidebar = computed(() => !smAndDown.value);
 
 // Get navigation groups from shared config
-const navigationGroups = computed(() => navigationConfig)
+const navigationGroups = computed(() => {
+  if (permissionsLoading.value) {
+    return [];
+  }
+
+  const allowed = allowedRoutes.value;
+  return navigationConfig
+    .map((group) => {
+      const children = group.children.filter((child) =>
+        allowed.has(normalizePath(child.route)),
+      );
+      return { ...group, children };
+    })
+    .filter((group) => group.children.length > 0);
+});
 
 // Helper function to get group expansion state
 const getGroupExpansion = (groupTitle: string) => {
-  if (groupTitle === 'Admin Controls') return adminGroupExpanded
-  if (groupTitle === 'My Organization') return organizationGroupExpanded
-  if (groupTitle === 'My Account') return myAccountGroupExpanded
-  return ref(true)
-}
+  if (groupTitle === "Admin Controls") return adminGroupExpanded;
+  if (groupTitle === "My Organization") return organizationGroupExpanded;
+  if (groupTitle === "My Account") return myAccountGroupExpanded;
+  return ref(true);
+};
 
 // Methods
 const navigateTo = (route: string) => {
-  router.push(route)
-}
+  router.push(route);
+};
 
 // Check if route is active
 const isRouteActive = (routePath: string) => {
-  return route.path === routePath
-}
+  return route.path === routePath;
+};
 
 // Logout function
 const handleLogout = async () => {
-  await authStore.signOut()
-}
+  await authStore.signOut();
+};
+
+const loadAllowedRoutes = async () => {
+  permissionsLoading.value = true;
+  try {
+    let roleId = authStore.userData?.user_metadata?.role;
+
+    if (!roleId) {
+      const currentUserResult = await authStore.getCurrentUser();
+      roleId = currentUserResult.user?.user_metadata?.role;
+    }
+
+    if (!roleId) {
+      allowedRoutes.value = new Set();
+      return;
+    }
+
+    const rolePages = await pagesStore.fetchRolePagesByRoleId(roleId);
+    const allowed = rolePages
+      .map((rolePage) => rolePage.pages)
+      .filter((page): page is string => Boolean(page))
+      .map((page) => normalizePath(page));
+
+    allowedRoutes.value = new Set(allowed);
+  } catch (error) {
+    console.error("Failed to load allowed routes for sidebar:", error);
+    allowedRoutes.value = new Set();
+  } finally {
+    permissionsLoading.value = false;
+  }
+};
+
+watch(
+  () => authStore.userData?.user_metadata?.role,
+  () => {
+    loadAllowedRoutes();
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
   <v-navigation-drawer
-      v-if="showSidebar"
-      v-model="isExpanded"
-      :permanent="!smAndDown"
-      :temporary="smAndDown"
-      app
-      fixed
-      class="elevation-2 sidebar-full-height"
-      width="280"
-      color="background"
-    >
+    v-if="showSidebar"
+    v-model="isExpanded"
+    :permanent="!smAndDown"
+    :temporary="smAndDown"
+    app
+    fixed
+    class="elevation-2 sidebar-full-height"
+    width="280"
+    color="background"
+  >
     <!-- Sidebar Header -->
     <v-list-item class="pa-4">
       <v-list-item-content>
         <v-list-item-title class="text-h6 font-weight-bold primary--text">
-        Menu
+          Menu
         </v-list-item-title>
         <v-list-item-subtitle class="text-caption grey--text">
           Management System
@@ -110,10 +172,18 @@ const handleLogout = async () => {
       >
         <!-- Group Header -->
         <v-list-item
-          @click="getGroupExpansion(group.title).value = !getGroupExpansion(group.title).value"
+          @click="
+            getGroupExpansion(group.title).value = !getGroupExpansion(
+              group.title,
+            ).value
+          "
           class="mb-1 rounded-lg group-header"
           :prepend-icon="group.icon"
-          :append-icon="getGroupExpansion(group.title).value ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+          :append-icon="
+            getGroupExpansion(group.title).value
+              ? 'mdi-chevron-up'
+              : 'mdi-chevron-down'
+          "
         >
           <v-list-item-title class="font-weight-medium">
             {{ group.title }}
@@ -122,7 +192,10 @@ const handleLogout = async () => {
 
         <!-- Collapsible Children -->
         <v-expand-transition>
-          <div v-show="getGroupExpansion(group.title).value" class="group-children">
+          <div
+            v-show="getGroupExpansion(group.title).value"
+            class="group-children"
+          >
             <v-list-item
               v-for="child in group.children"
               :key="child.title"
@@ -170,7 +243,6 @@ const handleLogout = async () => {
 </template>
 
 <style scoped>
-
 .v-navigation-drawer {
   /* Remove static background so Vuetify theme color applies */
   z-index: 1000 !important; /* Ensure sidebar is above other content but below navbar */

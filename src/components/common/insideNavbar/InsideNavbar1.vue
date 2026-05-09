@@ -1,83 +1,157 @@
 <script lang="ts" setup>
-  import type { UIConfig, LogoConfig } from '@/controller/landingController'
-  import { computed, ref, onMounted, onUnmounted } from 'vue'
-  import { useRouter } from 'vue-router'
-  import { useTheme } from '@/composables/useTheme'
-  import { useDisplay } from 'vuetify'
-  import { useAuthUserStore } from '@/stores/authUser'
-  import SlugName from './SlugName.vue'
-  import { navigationConfig, type NavigationGroup, type NavigationItem } from '@/utils/navigation'
+import type { UIConfig, LogoConfig } from "@/controller/landingController";
+import { computed, ref, onMounted, onUnmounted, watch } from "vue";
+import { useRouter } from "vue-router";
+import { useTheme } from "@/composables/useTheme";
+import { useDisplay } from "vuetify";
+import { useAuthUserStore } from "@/stores/authUser";
+import { useUserPagesStore } from "@/stores/pages";
+import SlugName from "./SlugName.vue";
+import { navigationConfig } from "@/utils/navigation";
 
-  interface Props {
-    config?: UIConfig | null
+interface Props {
+  config?: UIConfig | null;
+}
+
+const props = defineProps<Props>();
+const router = useRouter();
+const authStore = useAuthUserStore();
+const pagesStore = useUserPagesStore();
+
+// Responsive breakpoints
+const { mobile } = useDisplay();
+
+// Mobile drawer state
+const mobileDrawer = ref(false);
+
+// Theme management
+const {
+  toggleTheme: handleToggleTheme,
+  getCurrentTheme,
+  isLoadingTheme,
+} = useTheme();
+
+// Scroll detection for mobile drawer auto-close
+let lastScrollY = ref(0);
+let ticking = ref(false);
+
+const permissionsLoading = ref(true);
+const allowedRoutes = ref<Set<string>>(new Set());
+
+const normalizePath = (path: string) => {
+  const normalized = path.replace(/\/+$/, "");
+  return normalized.length > 0 ? normalized : "/";
+};
+
+const handleScroll = () => {
+  if (!ticking.value) {
+    requestAnimationFrame(() => {
+      const currentScrollY = window.scrollY;
+
+      // Close mobile drawer when scrolling down
+      if (
+        mobile.value &&
+        mobileDrawer.value &&
+        currentScrollY > lastScrollY.value
+      ) {
+        mobileDrawer.value = false;
+      }
+
+      lastScrollY.value = currentScrollY;
+      ticking.value = false;
+    });
+    ticking.value = true;
+  }
+};
+
+// Add scroll listener on mount, remove on unmount
+onMounted(() => {
+  window.addEventListener("scroll", handleScroll, { passive: true });
+  lastScrollY.value = window.scrollY;
+});
+
+onUnmounted(() => {
+  window.removeEventListener("scroll", handleScroll);
+});
+
+const navbarConfig = computed(() => props.config?.navbar);
+
+// Theme toggle computed properties
+const currentTheme = computed(() => getCurrentTheme());
+const themeIcon = computed(() => {
+  return currentTheme.value === "dark"
+    ? "mdi-white-balance-sunny"
+    : "mdi-weather-night";
+});
+const themeTooltip = computed(() => {
+  return `Switch to ${currentTheme.value === "dark" ? "light" : "dark"} theme`;
+});
+
+const navigationGroups = computed(() => {
+  if (permissionsLoading.value) {
+    return [];
   }
 
-  const props = defineProps<Props>()
-  const router = useRouter()
-  const authStore = useAuthUserStore()
+  const allowed = allowedRoutes.value;
+  return navigationConfig
+    .map((group) => {
+      const children = group.children.filter((child) =>
+        allowed.has(normalizePath(child.route)),
+      );
+      return { ...group, children };
+    })
+    .filter((group) => group.children.length > 0);
+});
 
-  // Responsive breakpoints
-  const { mobile } = useDisplay()
+function toggleTheme() {
+  handleToggleTheme();
+}
 
-  // Mobile drawer state
-  const mobileDrawer = ref(false)
+async function handleLogout() {
+  try {
+    await authStore.signOut();
+  } catch (error) {
+    console.error("Logout failed:", error);
+  }
+}
 
-  // Theme management
-  const { toggleTheme: handleToggleTheme, getCurrentTheme, isLoadingTheme } = useTheme()
+const loadAllowedRoutes = async () => {
+  permissionsLoading.value = true;
+  try {
+    let roleId = authStore.userData?.user_metadata?.role;
 
-  // Scroll detection for mobile drawer auto-close
-  let lastScrollY = ref(0)
-  let ticking = ref(false)
-
-  const handleScroll = () => {
-    if (!ticking.value) {
-      requestAnimationFrame(() => {
-        const currentScrollY = window.scrollY
-
-        // Close mobile drawer when scrolling down
-        if (mobile.value && mobileDrawer.value && currentScrollY > lastScrollY.value) {
-          mobileDrawer.value = false
-        }
-
-        lastScrollY.value = currentScrollY
-        ticking.value = false
-      })
-      ticking.value = true
+    if (!roleId) {
+      const currentUserResult = await authStore.getCurrentUser();
+      roleId = currentUserResult.user?.user_metadata?.role;
     }
-  }
 
-  // Add scroll listener on mount, remove on unmount
-  onMounted(() => {
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    lastScrollY.value = window.scrollY
-  })
-
-  onUnmounted(() => {
-    window.removeEventListener('scroll', handleScroll)
-  })
-
-  const navbarConfig = computed(() => props.config?.navbar)
-
-  // Theme toggle computed properties
-  const currentTheme = computed(() => getCurrentTheme())
-  const themeIcon = computed(() => {
-    return currentTheme.value === 'dark' ? 'mdi-white-balance-sunny' : 'mdi-weather-night'
-  })
-  const themeTooltip = computed(() => {
-    return `Switch to ${currentTheme.value === 'dark' ? 'light' : 'dark'} theme`
-  })
-
-  function toggleTheme () {
-    handleToggleTheme()
-  }
-
-  async function handleLogout () {
-    try {
-      await authStore.signOut()
-    } catch (error) {
-      console.error('Logout failed:', error)
+    if (!roleId) {
+      allowedRoutes.value = new Set();
+      return;
     }
+
+    const rolePages = await pagesStore.fetchRolePagesByRoleId(roleId);
+    const allowed = rolePages
+      .map((rolePage) => rolePage.pages)
+      .filter((page): page is string => Boolean(page))
+      .map((page) => normalizePath(page));
+
+    allowedRoutes.value = new Set(allowed);
+  } catch (error) {
+    console.error("Failed to load allowed routes for navbar:", error);
+    allowedRoutes.value = new Set();
+  } finally {
+    permissionsLoading.value = false;
   }
+};
+
+watch(
+  () => authStore.userData?.user_metadata?.role,
+  () => {
+    loadAllowedRoutes();
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -103,20 +177,12 @@
           contain
         >
           <template #error>
-            <v-icon
-              class="me-2"
-              :icon="navbarConfig.icon"
-              size="large"
-            />
+            <v-icon class="me-2" :icon="navbarConfig.icon" size="large" />
           </template>
         </v-img>
       </template>
       <template v-else>
-        <v-icon
-          class="me-2"
-          :icon="navbarConfig?.icon"
-          size="large"
-        />
+        <v-icon class="me-2" :icon="navbarConfig?.icon" size="large" />
       </template>
       <span class="text-h6 font-weight-bold">{{ navbarConfig?.title }}</span>
     </div>
@@ -125,7 +191,7 @@
 
     <!-- Navigation Menu -->
     <v-list nav class="py-2">
-      <template v-for="group in navigationConfig" :key="group.title">
+      <template v-for="group in navigationGroups" :key="group.title">
         <!-- Navigation Group -->
         <v-list-group :value="group.title">
           <template #activator="{ props: activatorProps }">
@@ -204,25 +270,19 @@
           >
             <template #error>
               <!-- Fallback to icon if image fails to load -->
-              <v-icon
-                class="me-2"
-                :icon="navbarConfig.icon"
-                size="large"
-              />
+              <v-icon class="me-2" :icon="navbarConfig.icon" size="large" />
             </template>
           </v-img>
         </template>
 
         <template v-else>
           <!-- Default icon when no logo is configured -->
-          <v-icon
-            class="me-2"
-            :icon="navbarConfig?.icon"
-            size="large"
-          />
+          <v-icon class="me-2" :icon="navbarConfig?.icon" size="large" />
         </template>
 
-        <span class="text-h6 font-weight-bold ms-2">{{ navbarConfig?.title }}</span>
+        <span class="text-h6 font-weight-bold ms-2">{{
+          navbarConfig?.title
+        }}</span>
       </div>
     </template>
 
@@ -256,7 +316,9 @@
   top: 0 !important;
   left: 280px !important; /* Position to the right of sidebar */
   right: 0 !important;
-  width: calc(100% - 280px) !important; /* Adjust width to account for sidebar */
+  width: calc(
+    100% - 280px
+  ) !important; /* Adjust width to account for sidebar */
   z-index: 1001 !important; /* Above sidebar but below overlays */
 }
 
