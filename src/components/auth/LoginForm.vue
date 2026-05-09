@@ -2,7 +2,12 @@
   <v-card-title class="text-h5 text-center py-6"> Sign In </v-card-title>
 
   <v-card-text class="px-6 pb-6">
-    <v-form ref="formRef" v-model="formValid" @submit.prevent="handleLogin">
+    <v-form
+      ref="formRef"
+      v-model="formValid"
+      validate-on="submit"
+      @submit.prevent="handleLogin"
+    >
       <v-container class="pa-0">
         <v-row no-gutters>
           <v-col cols="12">
@@ -12,6 +17,7 @@
               type="email"
               variant="outlined"
               density="comfortable"
+              validate-on="submit"
               :rules="[requiredValidator, emailValidator]"
               :error-messages="errors.email"
               prepend-inner-icon="mdi-email"
@@ -28,6 +34,7 @@
               :type="showPassword ? 'text' : 'password'"
               variant="outlined"
               density="comfortable"
+              validate-on="submit"
               :rules="[requiredValidator]"
               :error-messages="errors.password"
               prepend-inner-icon="mdi-lock"
@@ -47,7 +54,7 @@
               size="large"
               block
               :loading="isLoading"
-              :disabled="!formValid || isLoading"
+              :disabled="isLoading"
               class="mb-4"
             >
               Sign In
@@ -76,7 +83,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from "vue";
+import { ref, reactive, computed } from "vue";
 import {
   requiredValidator,
   emailValidator,
@@ -125,7 +132,9 @@ const clearErrors = () => {
 };
 
 const handleLogin = async () => {
-  if (!formValid.value) {
+  const validationResult = await formRef.value?.validate();
+
+  if (!validationResult?.valid) {
     toast.error("Please fill in all required fields correctly");
     return;
   }
@@ -134,10 +143,7 @@ const handleLogin = async () => {
   clearErrors();
 
   try {
-    const result = await authStore.signIn(
-      loginForm.email,
-      loginForm.password
-    );
+    const result = await authStore.signIn(loginForm.email, loginForm.password);
 
     if (result.error) {
       const errorMessage = getErrorMessage(result.error);
@@ -163,10 +169,8 @@ const handleLogin = async () => {
 
 // Reset form
 const resetForm = () => {
-  loginForm.email = "";
-  loginForm.password = "";
   clearErrors();
-  formRef.value?.resetValidation();
+  formRef.value?.reset();
 };
 
 // Expose methods for parent component

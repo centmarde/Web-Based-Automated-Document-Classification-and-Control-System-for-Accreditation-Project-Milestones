@@ -1,65 +1,108 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue'
-import { storeToRefs } from 'pinia'
-import InnerLayoutWrapper from '@/layouts/InnerLayoutWrapper.vue'
-import { useDocumentsDataStore } from '@/stores/documentsData'
-import { useAuthUserStore } from '@/stores/authUser'
+import { ref, onMounted, watch, computed } from "vue";
+import { storeToRefs } from "pinia";
+import InnerLayoutWrapper from "@/layouts/InnerLayoutWrapper.vue";
+import { useDocumentsDataStore } from "@/stores/documentsData";
+import { useAuthUserStore } from "@/stores/authUser";
+import ApprovalConfirmDialog from "@/pages/admin/dialogs/ApprovalConfirmDialog.vue";
 
-const docsStore = useDocumentsDataStore()
-const { loading, error, adminVersionItems } = storeToRefs(docsStore)
-const authStore = useAuthUserStore()
+const docsStore = useDocumentsDataStore();
+const { loading, error, adminVersionItems } = storeToRefs(docsStore);
+const authStore = useAuthUserStore();
 
-const tagMenus = ref<Record<string, boolean>>({})
+const tagMenus = ref<Record<string, boolean>>({});
+const confirmDialogOpen = ref(false);
+const confirmAction = ref<"approve" | "reject" | null>(null);
+const confirmItem = ref<any | null>(null);
 const ownersMap = computed(() => {
-  const map: Record<string, string> = {}
+  const map: Record<string, string> = {};
   authStore.users.forEach((u) => {
-    const name = u.full_name || u.user_metadata?.full_name || u.email || u.id
-    map[u.id] = name
-  })
-  return map
-})
+    const name = u.full_name || u.user_metadata?.full_name || u.email || u.id;
+    map[u.id] = name;
+  });
+  return map;
+});
 
 const ownerName = (userId?: string) => {
-  if (!userId) return 'Unknown'
-  return ownersMap.value[userId] || userId
-}
+  if (!userId) return "Unknown";
+  return ownersMap.value[userId] || userId;
+};
 
 const statusColor = (status?: string) => {
-  const s = (status || '').toLowerCase()
-  if (s === 'approved') return 'success'
-  if (s === 'rejected') return 'error'
-  return 'info'
-}
+  const s = (status || "").toLowerCase();
+  if (s === "approved") return "success";
+  if (s === "rejected") return "error";
+  return "info";
+};
+
+const openConfirmDialog = (action: "approve" | "reject", item: any) => {
+  confirmAction.value = action;
+  confirmItem.value = item;
+  confirmDialogOpen.value = true;
+};
+
+const handleConfirm = async () => {
+  if (!confirmAction.value || !confirmItem.value) return;
+
+  const documentId = confirmItem.value.documentId;
+  const version = confirmItem.value.version?.v || 0;
+
+  if (confirmAction.value === "approve") {
+    await docsStore.approveVersion(documentId, version, filter.value);
+  } else {
+    await docsStore.rejectVersion(documentId, version, filter.value);
+  }
+
+  confirmDialogOpen.value = false;
+  confirmAction.value = null;
+  confirmItem.value = null;
+};
+
+const confirmTitle = computed(() =>
+  confirmAction.value === "approve"
+    ? "Approve Document Version"
+    : "Reject Document Version",
+);
+
+const confirmMessage = computed(() => {
+  const title = confirmItem.value?.docTitle || "this document";
+  const version = confirmItem.value?.version?.v ?? "?";
+  if (confirmAction.value === "approve") {
+    return `Are you sure you want to approve "${title}" (v${version})?`;
+  }
+  return `Are you sure you want to reject "${title}" (v${version})? This action can be reversed by approving a newer version.`;
+});
 
 const versionTags = (item: any): string[] => {
-  const raw = item?.version?.tags
-  if (!raw) return []
-  if (Array.isArray(raw)) return raw.filter((t) => typeof t === 'string') as string[]
-  if (typeof raw === 'object') {
-    return Object.values(raw).filter((t) => typeof t === 'string') as string[]
+  const raw = item?.version?.tags;
+  if (!raw) return [];
+  if (Array.isArray(raw))
+    return raw.filter((t) => typeof t === "string") as string[];
+  if (typeof raw === "object") {
+    return Object.values(raw).filter((t) => typeof t === "string") as string[];
   }
-  return []
-}
+  return [];
+};
 
 // UI filter state (applies to version status)
-const filter = ref<'all' | 'pending' | 'approved' | 'rejected'>('pending')
+const filter = ref<"all" | "pending" | "approved" | "rejected">("pending");
 
 const loadDocs = async () => {
-  await docsStore.fetchAdminVersionItems(filter.value)
-}
+  await docsStore.fetchAdminVersionItems(filter.value);
+};
 
 const loadOwners = async () => {
   if (!authStore.users.length) {
-    await authStore.getAllUsers()
+    await authStore.getAllUsers();
   }
-}
+};
 
 onMounted(async () => {
-  await Promise.all([loadDocs(), loadOwners()])
-})
-watch(filter, loadDocs)
+  await Promise.all([loadDocs(), loadOwners()]);
+});
+watch(filter, loadDocs);
 
-const itemKey = (item: any) => `${item.documentId}-${item.version?.v ?? 0}`
+const itemKey = (item: any) => `${item.documentId}-${item.version?.v ?? 0}`;
 </script>
 
 <template>
@@ -82,7 +125,7 @@ const itemKey = (item: any) => `${item.documentId}-${item.version?.v ?? 0}`
                   { title: 'All', value: 'all' },
                   { title: 'Pending', value: 'pending' },
                   { title: 'Approved', value: 'approved' },
-                  { title: 'Rejected', value: 'rejected' }
+                  { title: 'Rejected', value: 'rejected' },
                 ]"
                 label="Filter"
                 density="comfortable"
@@ -117,7 +160,7 @@ const itemKey = (item: any) => `${item.documentId}-${item.version?.v ?? 0}`
         </v-row>
 
         <!-- Empty State -->
-  <v-row v-else-if="adminVersionItems.length === 0">
+        <v-row v-else-if="adminVersionItems.length === 0">
           <v-col cols="12">
             <div class="text-center py-12">
               <v-icon size="96" color="grey-lighten-1" class="mb-4">
@@ -155,7 +198,9 @@ const itemKey = (item: any) => `${item.documentId}-${item.version?.v ?? 0}`
                       variant="text"
                       prepend-icon="mdi-open-in-new"
                       size="small"
-                      @click="docsStore.openDocumentFile(item.version?.file_url)"
+                      @click="
+                        docsStore.openDocumentFile(item.version?.file_url)
+                      "
                     >
                       Open
                     </v-btn>
@@ -166,16 +211,24 @@ const itemKey = (item: any) => `${item.documentId}-${item.version?.v ?? 0}`
                     :color="statusColor(item.version?.status)"
                     variant="tonal"
                   >
-                    {{ item.version?.status || 'pending' }}
+                    {{ item.version?.status || "pending" }}
                   </v-chip>
                 </div>
 
-                <h3 class="text-h6 font-weight-medium mb-1 d-flex align-center ga-2">
-                  <span>{{ item.docTitle || 'Untitled Document' }}</span>
-                  <v-chip size="small" variant="outlined">v{{ item.version?.v ?? '?' }}</v-chip>
+                <h3
+                  class="text-h6 font-weight-medium mb-1 d-flex align-center ga-2"
+                >
+                  <span>{{ item.docTitle || "Untitled Document" }}</span>
+                  <v-chip size="small" variant="outlined"
+                    >v{{ item.version?.v ?? "?" }}</v-chip
+                  >
                 </h3>
                 <div class="text-caption text-grey-darken-1 mb-3">
-                  {{ item.version?.created_at ? new Date(item.version.created_at).toLocaleString() : '—' }}
+                  {{
+                    item.version?.created_at
+                      ? new Date(item.version.created_at).toLocaleString()
+                      : "—"
+                  }}
                 </div>
 
                 <div class="mb-3">
@@ -229,7 +282,11 @@ const itemKey = (item: any) => `${item.documentId}-${item.version?.v ?? 0}`
                   </div>
                   <div class="d-flex justify-space-between">
                     <span>Version Created</span>
-                    <strong>{{ item.version?.created_at ? new Date(item.version.created_at).toLocaleString() : '—' }}</strong>
+                    <strong>{{
+                      item.version?.created_at
+                        ? new Date(item.version.created_at).toLocaleString()
+                        : "—"
+                    }}</strong>
                   </div>
                 </div>
 
@@ -240,8 +297,10 @@ const itemKey = (item: any) => `${item.documentId}-${item.version?.v ?? 0}`
                       variant="elevated"
                       prepend-icon="mdi-check"
                       size="small"
-                      :disabled="(item.version?.status || '').toLowerCase() !== 'pending'"
-                      @click="docsStore.approveVersion(item.documentId, (item.version?.v || 0), filter)"
+                      :disabled="
+                        (item.version?.status || '').toLowerCase() !== 'pending'
+                      "
+                      @click="openConfirmDialog('approve', item)"
                     >
                       Approve
                     </v-btn>
@@ -250,8 +309,10 @@ const itemKey = (item: any) => `${item.documentId}-${item.version?.v ?? 0}`
                       variant="elevated"
                       prepend-icon="mdi-close"
                       size="small"
-                      :disabled="(item.version?.status || '').toLowerCase() !== 'pending'"
-                      @click="docsStore.rejectVersion(item.documentId, (item.version?.v || 0), filter)"
+                      :disabled="
+                        (item.version?.status || '').toLowerCase() !== 'pending'
+                      "
+                      @click="openConfirmDialog('reject', item)"
                     >
                       Reject
                     </v-btn>
@@ -262,13 +323,24 @@ const itemKey = (item: any) => `${item.documentId}-${item.version?.v ?? 0}`
           </v-col>
         </v-row>
       </v-container>
+
+      <ApprovalConfirmDialog
+        v-model="confirmDialogOpen"
+        :action="confirmAction || 'approve'"
+        :title="confirmTitle"
+        :message="confirmMessage"
+        :loading="loading"
+        @confirm="handleConfirm"
+      />
     </template>
   </InnerLayoutWrapper>
 </template>
 
 <style scoped>
 .v-card {
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  transition:
+    transform 0.2s ease-in-out,
+    box-shadow 0.2s ease-in-out;
 }
 .v-card:hover {
   transform: translateY(-2px);

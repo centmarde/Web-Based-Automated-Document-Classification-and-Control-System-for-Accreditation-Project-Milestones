@@ -1,53 +1,53 @@
 <script setup lang="ts">
-  import { onMounted, computed } from 'vue'
-  import { useLandingController } from '@/controller/landingController'
-  import OuterLayoutWrapper from '@/layouts/OuterLayoutWrapper.vue'
+import { onMounted, computed } from "vue";
+import { useLandingController } from "@/controller/landingController";
+import OuterLayoutWrapper from "@/layouts/OuterLayoutWrapper.vue";
 
-  const { data, loading, error, fetchLandingData } = useLandingController()
+const { data, loading, error, fetchLandingData } = useLandingController();
 
-  onMounted(async () => {
-    await fetchLandingData()
-  })
+onMounted(async () => {
+  await fetchLandingData();
+});
 
-  function scrollToFeatures () {
-    const element = document.querySelector('#features')
-    if (element) {
-      element.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      })
-    }
+function scrollToFeatures() {
+  const element = document.querySelector("#features");
+  if (element) {
+    element.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }
+}
+
+function openGithub() {
+  window.open("https://github.com", "_blank", "noopener,noreferrer");
+}
+
+function openDocumentation() {
+  window.open("https://vuetifyjs.com/", "_blank", "noopener,noreferrer");
+}
+
+function formatDate(dateString: string) {
+  return new Date(dateString).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+// Background image style
+const backgroundImageStyle = computed(() => {
+  if (!data.value?.backgroundImage) return {};
+
+  const { src, overlay } = data.value.backgroundImage;
+  let style = `background-image: url('${src}'); background-size: cover; background-position: center; background-repeat: no-repeat;`;
+
+  if (overlay?.enabled) {
+    style += ` background-blend-mode: overlay; background-color: ${overlay.color};`;
   }
 
-  function openGithub () {
-    window.open('https://github.com', '_blank', 'noopener,noreferrer')
-  }
-
-  function openDocumentation () {
-    window.open('https://vuetifyjs.com/', '_blank', 'noopener,noreferrer')
-  }
-
-  function formatDate (dateString: string) {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
-  }
-
-  // Background image style
-  const backgroundImageStyle = computed(() => {
-    if (!data.value?.backgroundImage) return {};
-
-    const { src, overlay } = data.value.backgroundImage;
-    let style = `background-image: url('${src}'); background-size: cover; background-position: center; background-repeat: no-repeat;`;
-
-    if (overlay?.enabled) {
-      style += ` background-blend-mode: overlay; background-color: ${overlay.color};`;
-    }
-
-    return style;
-  })
+  return style;
+});
 </script>
 
 <template>
@@ -122,7 +122,11 @@
                         variant="elevated"
                         @click="scrollToFeatures"
                       >
-                        <v-icon class="me-1" icon="mdi-rocket-launch" size="small" />
+                        <v-icon
+                          class="me-1"
+                          icon="mdi-rocket-launch"
+                          size="small"
+                        />
                         Explore Features
                       </v-btn>
 
@@ -144,10 +148,16 @@
           </section>
 
           <!-- Features Section -->
-          <section id="features" class="features-section py-16" :style="backgroundImageStyle">
+          <section
+            id="features"
+            class="features-section py-16"
+            :style="backgroundImageStyle"
+          >
             <v-container>
               <div class="text-center mb-12">
-                <h2 class="text-h3 font-weight-bold mb-4">Key Features</h2>
+                <h2 class="text-h3 font-weight-bold mb-4 text-grey-darken-1">
+                  Key Features
+                </h2>
                 <p class="text-h6 text-grey-darken-1">
                   Everything you need for modern academic writing
                 </p>
@@ -164,7 +174,11 @@
                   <v-card class="h-100" elevation="2" hover>
                     <v-card-text class="text-center pa-6">
                       <v-avatar class="mb-4" color="primary" size="64">
-                        <v-icon color="on-primary" :icon="feature.icon" size="32" />
+                        <v-icon
+                          color="on-primary"
+                          :icon="feature.icon"
+                          size="32"
+                        />
                       </v-avatar>
 
                       <h3 class="text-h5 font-weight-bold mb-3">
@@ -232,7 +246,6 @@
 </template>
 
 <style scoped>
-
 .min-height-screen {
   min-height: calc(100vh - 64px);
 }
@@ -243,7 +256,7 @@
 }
 
 .features-section::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -262,7 +275,7 @@
 }
 
 .features-section::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -287,10 +300,6 @@
 .landing-content {
   min-height: 100vh;
 }
-
-
-
-
 
 /* Responsive adjustments */
 @media (max-width: 960px) {
